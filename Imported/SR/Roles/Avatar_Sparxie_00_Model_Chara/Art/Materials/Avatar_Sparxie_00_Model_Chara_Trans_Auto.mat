@@ -1,0 +1,151 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Avatar_Sparxie_00_Model_Chara_Trans_Auto
+  m_Shader: {fileID: 4800000, guid: 1f2a2a676a09db74188fb7b46faa6da5, type: 3}
+  m_ValidKeywords:
+  - _ROLESHADINGMODE_TRANS
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 12a833648800870428084aa926776229, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FaceShadowMap:
+        m_Texture: {fileID: 2800000, guid: 65ad9a5ac285be447baeaf4e0547bb71, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LightMap:
+        m_Texture: {fileID: 2800000, guid: bb24ffc528793f84fa1ce2e502bc029d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineWidthMap:
+        m_Texture: {fileID: 2800000, guid: 119b0203dc384ca43aeada83fa4ecc20, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RampMap:
+        m_Texture: {fileID: 2800000, guid: c41c02b375be1a345831d1100d2f965f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AdditionalLightStrength: 0.1
+    - _AlphaClip: 0
+    - _AmbientStrength: 0.19
+    - _ColorSaturation: 1.48
+    - _Cutoff: 0.5
+    - _ExposureCompensation: 1.04
+    - _FaceForwardWrap: 0
+    - _FaceOrientationStrength: 0
+    - _FaceRegionWeight: 0
+    - _FaceRimSuppress: 0
+    - _FaceShadowHorizontalBias: 0
+    - _FaceShadowLift: 0
+    - _FaceShadowMapStrength: 1
+    - _FaceShadowMirrorLR: 1
+    - _FaceShadowNdLInfluence: 0.35
+    - _FaceShadowSoftness: 0.08
+    - _FaceShadowThresholdBias: 0
+    - _FaceSpecBoost: 0
+    - _HairAnisoStabilize: 0.7
+    - _HairSpecExponent1: 64
+    - _HairSpecExponent2: 20
+    - _HairSpecSecondaryStrength: 0.45
+    - _HairSpecShift: 0.1
+    - _HairSpecStrength: 0.2
+    - _HairSpecViewFade: 1.2
+    - _LightMapAOStrength: 1
+    - _LightMapSpecPower: 1
+    - _LightMapSpecStrength: 1
+    - _NormalScale: 1
+    - _OutlineDistanceEnd: 10
+    - _OutlineDistanceStart: 2
+    - _OutlineInnerSuppress: 0.25
+    - _OutlineMinScale: 0.55
+    - _OutlineSilhouetteBoost: 0.35
+    - _OutlineUseVertexColorNormal: 1
+    - _OutlineWidth: 0.04
+    - _OutlineWidthMapStrength: 0.45
+    - _OutlineZOffset: 0.002
+    - _RampBands: 3
+    - _RampContrast: 1.16
+    - _RampOffset: 0
+    - _RampStrength: 1.05
+    - _RimPower: 3.8
+    - _RimStrength: 0.08
+    - _RoleShadingMode: 3
+    - _ShadowStrength: 0.68
+    - _ShadowStylizeStrength: 0
+    - _ShadowTerminatorSoftness: 0.22
+    - _ShadowTerminatorWidth: 0.28
+    - _ShadowThreshold: 0.58
+    - _ShadowTintStrength: 0.35
+    - _SpecSoftness: 0.03
+    - _SpecThreshold: 0.987
+    - _SpecularIntensity: 1
+    - _SpecularIntensity0: 1
+    - _SpecularIntensity1: 1
+    - _SpecularIntensity2: 1
+    - _SpecularIntensity3: 1
+    - _SpecularIntensity4: 2.2
+    - _SpecularIntensity5: 1
+    - _SpecularIntensity6: 1
+    - _SpecularIntensity7: 2.5
+    - _SpecularRoughness: 0.02
+    - _SpecularRoughness0: 0.05
+    - _SpecularRoughness1: 0.05
+    - _SpecularRoughness2: 0.05
+    - _SpecularRoughness3: 0.05
+    - _SpecularRoughness4: 0.05
+    - _SpecularRoughness5: 0.05
+    - _SpecularRoughness6: 0.506
+    - _SpecularRoughness7: 0.07
+    - _SpecularShininess: 8
+    - _SpecularShininess0: 8
+    - _SpecularShininess1: 8
+    - _SpecularShininess2: 8
+    - _SpecularShininess3: 8
+    - _SpecularShininess4: 8
+    - _SpecularShininess5: 21
+    - _SpecularShininess6: 8
+    - _SpecularShininess7: 8
+    - _ToonContrast: 1
+    - _UseExtractedSpecParams: 1
+    - _UseFaceShadowMap: 0
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HeadForwardWS: {r: 0, g: 0, b: 1, a: 0}
+    - _HeadRightWS: {r: 1, g: 0, b: 0, a: 0}
+    - _OutlineColor: {r: 0.079999976, g: 0.10999996, b: 0.15999997, a: 1}
+    - _RimColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ShadowCoolColor: {r: 0.72, g: 0.82, b: 1, a: 1}
+    - _ShadowTintColor: {r: 0.75, g: 0.83, b: 1, a: 1}
+    - _ShadowWarmColor: {r: 1, g: 0.86, b: 0.74, a: 1}
+    - _SpecColor: {r: 0.37999994, g: 0.37999994, b: 0.37999994, a: 1}
+    - _SpecularColor0: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor1: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor2: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor3: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor4: {r: 0.6792453, g: 0.67076415, b: 0.5350659, a: 1}
+    - _SpecularColor5: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor6: {r: 0.8726415, g: 0.88812387, b: 1, a: 1}
+    - _SpecularColor7: {r: 0.60048056, g: 0.69330466, b: 0.735849, a: 1}
+  m_BuildTextureStacks: []
