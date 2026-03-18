@@ -13,12 +13,12 @@ using Object = UnityEngine.Object;
 public static class FxLabTimelineSummaryRebuilder
 {
     private const string LogPrefix = "[SRTimelineRebuilder]";
-    private const string GeneratedRoot = "Assets/SRExtractionValidation/Generated/SRTimelineRecovered";
+    private const string GeneratedRoot = "Assets/unity-sr-extraction-validation/Generated/SRTimelineRecovered";
     private const string SummaryFolderPrefKey = "SRExtractionValidation.SR.DefaultTimelineSummaryFolder";
     private const string LegacySummaryFolderPrefKey = "AllEffectsLab.SR.DefaultTimelineSummaryFolder";
-    private const string ValidationScenePath = "Assets/SRExtractionValidation/Scenes/SR-Extract-Validation.unity";
-    private const string DebugMaterialPath = "Assets/SRExtractionValidation/Generated/SRExtractValidation/SR_Debug_Opaque.mat";
-    private const string DiagnosticsOutputPath = "Assets/SRExtractionValidation/Screenshots/sr_renderer_diag.txt";
+    private const string ValidationScenePath = "Assets/unity-sr-extraction-validation/Scenes/SR-Extract-Validation.unity";
+    private const string DebugMaterialPath = "Assets/unity-sr-extraction-validation/Generated/SRExtractValidation/SR_Debug_Opaque.mat";
+    private const string DiagnosticsOutputPath = "Assets/unity-sr-extraction-validation/Screenshots/sr_renderer_diag.txt";
     private static string ProbeOutputPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
         "sr_mcp_probe.txt");
@@ -271,7 +271,7 @@ public static class FxLabTimelineSummaryRebuilder
             return;
         }
 
-        EnsureFolder("Assets/SRExtractionValidation/Generated/SRExtractValidation");
+        EnsureFolder("Assets/unity-sr-extraction-validation/Generated/SRExtractValidation");
         var mat = AssetDatabase.LoadAssetAtPath<Material>(DebugMaterialPath);
         if (mat == null)
         {
@@ -527,7 +527,7 @@ public static class FxLabTimelineSummaryRebuilder
 
     private static GameObject FindPreferredRoleModelPrefab()
     {
-        const string rolesRoot = "Assets/SRExtractionValidation/Imported/SR/Roles";
+        const string rolesRoot = "Assets/unity-sr-extraction-validation/Imported/SR/Roles";
         if (!AssetDatabase.IsValidFolder(rolesRoot))
         {
             return null;
@@ -1121,7 +1121,7 @@ public static class FxLabTimelineSummaryRebuilder
     private static ClipSearchIndex BuildClipSearchIndex()
     {
         var index = new ClipSearchIndex();
-        var clipFolders = new[] { "Assets/SRExtractionValidation/Imported/SR/Roles", "Assets/SRExtractionValidation" }
+        var clipFolders = new[] { "Assets/unity-sr-extraction-validation/Imported/SR/Roles", "Assets/unity-sr-extraction-validation" }
             .Where(AssetDatabase.IsValidFolder)
             .Distinct()
             .ToArray();
@@ -1388,4 +1388,5 @@ public static class FxLabTimelineSummaryRebuilder
         return scene;
     }
 }
+
 

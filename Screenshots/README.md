@@ -1,1 +1,2 @@
-Reserved for SR validation screenshots.
+﻿Reserved for SR validation screenshots.
+

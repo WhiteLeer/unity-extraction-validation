@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [DisallowMultipleComponent]
 public class NprFaceDirectionBinder : MonoBehaviour
@@ -56,4 +56,5 @@ public class NprFaceDirectionBinder : MonoBehaviour
         return null;
     }
 }
+
 
