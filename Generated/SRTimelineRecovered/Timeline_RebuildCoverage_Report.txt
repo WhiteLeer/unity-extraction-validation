@@ -1,0 +1,12 @@
+﻿Timeline 重建覆盖率自检
+时间: 2026-05-18 15:51:06
+角色关键字: Sparxie
+
+summaryTotal=18208
+summaryRoleMatched=5
+timelineTotal=4769
+timelineRoleMatched=0
+timelineRoleMatchedWithTracks=0
+timelineRoleMatchedWithClips=0
+
+示例（前20条）:

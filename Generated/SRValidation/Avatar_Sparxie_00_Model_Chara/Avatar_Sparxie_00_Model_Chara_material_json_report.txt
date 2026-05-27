@@ -1,0 +1,8 @@
+role=Avatar_Sparxie_00_Model_Chara
+clip_count=55
+json_count=5
+Assets/AllEffectsLab/Imported/SR/Roles/Avatar_Sparxie_00_Model_Chara/Art/Materials/Sparxie_00_Mat_Body_D.json | TexEnvs=True Floats=True Colors=True
+Assets/AllEffectsLab/Imported/SR/Roles/Avatar_Sparxie_00_Model_Chara/Art/Materials/Sparxie_00_Mat_Body_S.json | TexEnvs=True Floats=True Colors=True
+Assets/AllEffectsLab/Imported/SR/Roles/Avatar_Sparxie_00_Model_Chara/Art/Materials/Sparxie_00_Mat_Body_Trans.json | TexEnvs=True Floats=True Colors=True
+Assets/AllEffectsLab/Imported/SR/Roles/Avatar_Sparxie_00_Model_Chara/Art/Materials/Sparxie_00_Mat_Face.json | TexEnvs=True Floats=True Colors=True
+Assets/AllEffectsLab/Imported/SR/Roles/Avatar_Sparxie_00_Model_Chara/Art/Materials/Sparxie_00_Mat_Hair.json | TexEnvs=True Floats=True Colors=True
