@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 public static class SRValidationDebugTools
 {
-    private const string ValidationScenePath = "Assets/SRExtractionValidation/Scenes/SR-Extract-Validation.unity";
+    private const string ValidationScenePath = "Assets/unity-sr-extraction-validation/Scenes/SR-Extract-Validation.unity";
 
     public static void FixValidationCameraAndRenderers()
     {
@@ -133,5 +133,6 @@ public static class SRValidationDebugTools
         return valid ? b : new Bounds(fallbackCenter, Vector3.one);
     }
 }
+
 
 

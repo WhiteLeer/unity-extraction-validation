@@ -10,10 +10,10 @@ using UnityEngine.Timeline;
 
 public static class SRTimelineAuditTool
 {
-    private const string TimelineRoot = "Assets/SRExtractionValidation/Generated/SRTimelineRecovered";
-    private const string ReportPath = "Assets/SRExtractionValidation/Generated/SRTimelineRecovered/Timeline_Audit_Report.txt";
-    private const string ControlLookupReportPath = "Assets/SRExtractionValidation/Generated/SRTimelineRecovered/Timeline_ControlLookup_Report.txt";
-    private const string CoverageReportPath = "Assets/SRExtractionValidation/Generated/SRTimelineRecovered/Timeline_RebuildCoverage_Report.txt";
+    private const string TimelineRoot = "Assets/unity-sr-extraction-validation/Generated/SRTimelineRecovered";
+    private const string ReportPath = "Assets/unity-sr-extraction-validation/Generated/SRTimelineRecovered/Timeline_Audit_Report.txt";
+    private const string ControlLookupReportPath = "Assets/unity-sr-extraction-validation/Generated/SRTimelineRecovered/Timeline_ControlLookup_Report.txt";
+    private const string CoverageReportPath = "Assets/unity-sr-extraction-validation/Generated/SRTimelineRecovered/Timeline_RebuildCoverage_Report.txt";
     private const string SummaryFolderPrefKey = "SRExtractionValidation.SR.DefaultTimelineSummaryFolder";
     private const string LegacySummaryFolderPrefKey = "AllEffectsLab.SR.DefaultTimelineSummaryFolder";
 
@@ -224,9 +224,9 @@ public static class SRTimelineAuditTool
         {
             searchFolders.Add(roleFolder);
         }
-        if (AssetDatabase.IsValidFolder("Assets/SRExtractionValidation/Imported/SR"))
+        if (AssetDatabase.IsValidFolder("Assets/unity-sr-extraction-validation/Imported/SR"))
         {
-            searchFolders.Add("Assets/SRExtractionValidation/Imported/SR");
+            searchFolders.Add("Assets/unity-sr-extraction-validation/Imported/SR");
         }
         if (searchFolders.Count == 0)
         {
@@ -569,4 +569,5 @@ public static class SRTimelineAuditTool
         return modelRoot.transform.GetChild(0).gameObject;
     }
 }
+
 

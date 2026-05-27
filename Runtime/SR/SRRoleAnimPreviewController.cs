@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class SRRoleAnimPreviewController : MonoBehaviour
@@ -34,3 +34,4 @@ public class SRRoleAnimPreviewController : MonoBehaviour
         PlayCurrent();
     }
 }
+

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,9 +20,9 @@ public static class SRRoleMaterialAutoBinder
 
     private static readonly string[] SharedTextureFolders =
     {
-        "Assets/SRExtractionValidation/NPR/NPR-Core/Textures/StyleMaps/HSR",
-        "Assets/SRExtractionValidation/NPR/NPR-Core/Textures",
-        "Assets/SRExtractionValidation/Imported/SR/Shared/Textures"
+        "Assets/unity-sr-extraction-validation/NPR/NPR-Core/Textures/StyleMaps/HSR",
+        "Assets/unity-sr-extraction-validation/NPR/NPR-Core/Textures",
+        "Assets/unity-sr-extraction-validation/Imported/SR/Shared/Textures"
     };
 
     private static readonly string[] SemanticBase = { "Color", "BaseMap", "Albedo" };
@@ -551,3 +551,4 @@ public static class SRRoleMaterialAutoBinder
         }
     }
 }
+

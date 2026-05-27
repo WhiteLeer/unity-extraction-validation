@@ -11,14 +11,14 @@ using UnityEngine.Timeline;
 
 public static class FxLabExtractValidationSceneBuilder
 {
-    private const string ScenePath = "Assets/SRExtractionValidation/Scenes/SR-Extract-Validation.unity";
-    private const string GeneratedRoot = "Assets/SRExtractionValidation/Generated/SRExtractValidation";
+    private const string ScenePath = "Assets/unity-sr-extraction-validation/Scenes/SR-Extract-Validation.unity";
+    private const string GeneratedRoot = "Assets/unity-sr-extraction-validation/Generated/SRExtractValidation";
     private const string ControllerPath = GeneratedRoot + "/SR_ExtractValidation.controller";
     private const string TimelinePath = GeneratedRoot + "/SR_ExtractValidation.playable";
     private static readonly string[] ModelSearchFolders =
     {
-        "Assets/SRExtractionValidation/Imported/SR/Roles",
-        "Assets/SRExtractionValidation"
+        "Assets/unity-sr-extraction-validation/Imported/SR/Roles",
+        "Assets/unity-sr-extraction-validation"
     };
 
     public static void BuildScene()
@@ -399,3 +399,4 @@ public static class FxLabExtractValidationSceneBuilder
         }
     }
 }
+

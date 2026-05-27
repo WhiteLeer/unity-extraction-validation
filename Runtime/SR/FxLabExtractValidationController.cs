@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 using UnityEngine.Playables;
 
@@ -147,3 +147,4 @@ public class FxLabExtractValidationController : MonoBehaviour
             .ToArray();
     }
 }
+

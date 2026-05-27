@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -240,3 +240,4 @@ public class FxLabGlobalMotionController : MonoBehaviour
         _lastAppliedLight = lightCycleMultiplier;
     }
 }
+

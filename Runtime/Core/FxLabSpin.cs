@@ -13,3 +13,4 @@ public class FxLabSpin : MonoBehaviour
         transform.Rotate(axis.normalized, speed * Time.deltaTime, Space.Self);
     }
 }
+

@@ -11,10 +11,10 @@ using UnityEngine.Timeline;
 
 public class SRExtractionWorkbenchWindow : EditorWindow
 {
-    private const string ValidationScenePath = "Assets/SRExtractionValidation/Scenes/SR-Extract-Validation.unity";
-    private const string RolesRoot = "Assets/SRExtractionValidation/Imported/SR/Roles";
-    private const string TimelineRoot = "Assets/SRExtractionValidation/Generated/SRTimelineRecovered";
-    private const string TempControllerPath = "Assets/SRExtractionValidation/Generated/SRExtractValidation/SR_Workbench_Preview.controller";
+    private const string ValidationScenePath = "Assets/unity-sr-extraction-validation/Scenes/SR-Extract-Validation.unity";
+    private const string RolesRoot = "Assets/unity-sr-extraction-validation/Imported/SR/Roles";
+    private const string TimelineRoot = "Assets/unity-sr-extraction-validation/Generated/SRTimelineRecovered";
+    private const string TempControllerPath = "Assets/unity-sr-extraction-validation/Generated/SRExtractValidation/SR_Workbench_Preview.controller";
 
     private static readonly List<RoleEntry> Roles = new List<RoleEntry>();
     private static readonly List<AnimationClip> Clips = new List<AnimationClip>();
@@ -74,7 +74,7 @@ public class SRExtractionWorkbenchWindow : EditorWindow
 
         if (Roles.Count == 0)
         {
-            EditorGUILayout.HelpBox("未发现角色目录: Assets/SRExtractionValidation/Imported/SR/Roles", MessageType.Warning);
+            EditorGUILayout.HelpBox("未发现角色目录: Assets/unity-sr-extraction-validation/Imported/SR/Roles", MessageType.Warning);
             EditorGUILayout.EndVertical();
             return;
         }
@@ -311,7 +311,7 @@ public class SRExtractionWorkbenchWindow : EditorWindow
             return;
         }
 
-        EnsureFolder("Assets/SRExtractionValidation/Generated/SRExtractValidation");
+        EnsureFolder("Assets/unity-sr-extraction-validation/Generated/SRExtractValidation");
         var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(TempControllerPath);
         if (controller == null)
         {
@@ -801,4 +801,5 @@ public class SRExtractionWorkbenchWindow : EditorWindow
         return aliases.Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
     }
 }
+
 

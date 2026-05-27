@@ -25,3 +25,4 @@ public class FxLabDirectionalLightAnimator : MonoBehaviour
             _light.intensity = baseIntensity + t * intensitySwing;
     }
 }
+
