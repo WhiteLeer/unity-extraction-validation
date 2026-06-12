@@ -71,7 +71,6 @@ struct HoyoVaryings
     half3 viewDirWS : TEXCOORD4;
     float4 shadowCoord : TEXCOORD5;
     half4 fogFactorAndVertexLight : TEXCOORD6;
-    FRONT_FACE_TYPE frontFace : FRONT_FACE_SEMANTIC;
     UNITY_VERTEX_INPUT_INSTANCE_ID
     UNITY_VERTEX_OUTPUT_STEREO
 };
@@ -172,7 +171,7 @@ half4 HoyoUrpFrag(HoyoVaryings input) : SV_Target
     }
 
     half4 lightMap = SAMPLE_TEXTURE2D(_LightMap, sampler_LightMap, input.uv2);
-    half facing = IS_FRONT_VFACE(input.frontFace, 1.0h, 0.0h);
+    half facing = step(0.0h, dot(normalize(input.normalWS), normalize(input.viewDirWS)));
     half3 tint = lerp(_BackColor.rgb, _Color.rgb, facing);
     half3 albedo = albedoSample.rgb * tint;
 
