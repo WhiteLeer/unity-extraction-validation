@@ -1,0 +1,20 @@
+{
+    "name": "UnityExtractionValidation.Editor",
+    "rootNamespace": "UnityExtractionValidation.Editor",
+    "references": [
+        "UnityExtractionValidation.Runtime",
+        "Unity.Timeline",
+        "Unity.Timeline.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
