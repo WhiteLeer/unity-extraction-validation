@@ -1,0 +1,723 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Sparkle_Effect
+  m_Shader: {fileID: 4800000, guid: b196fee0fbabd494c81494f39a8192f4, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _BACKFDCEUV2_ON
+  - _BASEMATERIAL_ON
+  - _CL_R
+  - _ENABLECOLORHUE_ON
+  - _ENABLEEMISSIONHUE_ON
+  - _ENABLEFOVWIDTH_ON
+  - _ENABLEOUTLINEHUE_ON
+  - _ENABLEOUTLINE_ON
+  - _ENABLERIMHUE_ON
+  - _ENABLERIMLIGHT_ON
+  - _ENABLESHADOW_ON
+  - _ENABLESPECULAR_ON
+  - _FILTERLIGHT_ON
+  - _HIDENPCPARTS_ON
+  - _MULTILIGHT_ON
+  - _STARAFFECTEDBYLIGHT_ON
+  - _USEMATERIALVALUESLUT_ON
+  - _VERTEXCOLOR_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2000
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CausTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CubeMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DiffuseCoolRampMultiTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DiffuseRampMultiTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DisTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DissolveMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DissolveMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FaceExpression:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FaceMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HueMaskTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LightMap:
+        m_Texture: {fileID: 2800000, guid: 81e81b79890acf2469ac744ed0125036, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Lut2DTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 30f07f63ba3ac7f439622624a15a9a80, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MatCapMaskTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MatCapTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaterialValuesPackLUT:
+        m_Texture: {fileID: 2800000, guid: 44236611f8ba37747ad84eacfb880bef, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineColorTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SecondaryDiff:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SkyMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SkyStarMaskTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SkyStarTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SkyTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _StockRangeTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - CharacterLeft: 0
+    - CharacterRight: 0
+    - ShaderBG: 0
+    - ShaderLogo: 0
+    - _AlphaCutoff: 0
+    - _AlphaTestThreshold: 0
+    - _AutomaticColorShift: 0
+    - _AutomaticEmissionShift: 0
+    - _AutomaticOutlineShift: 0
+    - _AutomaticRimShift: 0
+    - _BaseMaterial: 1
+    - _CL: 0
+    - _CausExp: 1
+    - _CausInt: 1
+    - _CausSpeedA: 1
+    - _CausSpeedB: 1
+    - _CausSplit: 0
+    - _CausToggle: 0
+    - _CausUV: 0
+    - _CharaWorldSpaceOffset: 0
+    - _ColorHue: 0
+    - _ColorHue2: 0
+    - _ColorHue3: 0
+    - _ColorHue4: 0
+    - _ColorHue5: 0
+    - _ColorHue6: 0
+    - _ColorHue7: 0
+    - _ColorHue8: 0
+    - _CullMode: 0
+    - _DebugDiffuse: 0
+    - _DebugEmission: 0
+    - _DebugFaceExp: 0
+    - _DebugFaceMap: 0
+    - _DebugFaceVector: 0
+    - _DebugHairFade: 0
+    - _DebugLightMap: 0
+    - _DebugLights: 0
+    - _DebugMLut: 0
+    - _DebugMLutChannel: 0
+    - _DebugMaterialIDs: 0
+    - _DebugMode: 0
+    - _DebugNormalVector: 0
+    - _DebugRimLight: 0
+    - _DebugSpecular: 0
+    - _DebugTangent: 0
+    - _DebugVertexColor: 0
+    - _DiffuseMaskSource: 0
+    - _DisTexG: 0
+    - _Disappear: 0
+    - _DissolveDistortionIntensity: 0.01
+    - _DissolveMapAdd: 0
+    - _DissolveOutlineOffset: 0
+    - _DissolveOutlineSize1: 0.05
+    - _DissolveOutlineSize2: 0
+    - _DissolvePosMaskFilpOn: 0
+    - _DissolvePosMaskOn: 0
+    - _DissolvePosMaskWorldON: 0
+    - _DissolveRate: 0
+    - _DissolveUV: 0
+    - _DissolveUseDirection: 0
+    - _DissoveDirecMask: 2
+    - _DissoveON: 0
+    - _DstBlend: 10
+    - _ES_EP_EffectParticleBottom: 1
+    - _ES_EP_EffectParticleTop: 1
+    - _ES_HeightLerpBottom: 0
+    - _ES_HeightLerpTop: 1
+    - _ES_LEVEL_ADJUST_ON: 0
+    - _ES_LevelHighLight: 1
+    - _ES_LevelMid: 0.55
+    - _ES_LevelShadow: 0
+    - _ES_RimShadowIntensity: 0.1
+    - _ES_Rimintensity: 0.1
+    - _ES_SPIntensity: 0.5
+    - _EffectOverrideTime: 0
+    - _EffectOverrideTimeEnable: 0
+    - _EmissionHue: 0
+    - _EmissionHue2: 0
+    - _EmissionHue3: 0
+    - _EmissionHue4: 0
+    - _EmissionHue5: 0
+    - _EmissionHue6: 0
+    - _EmissionHue7: 0
+    - _EmissionHue8: 0
+    - _EmissionIntensity: 1
+    - _EmissionMaskSource: 0
+    - _EmissionThreshold: 0.5
+    - _EmissionToggle: 0
+    - _EnableAlphaCutoff: 0
+    - _EnableColorHue: 1
+    - _EnableEmission: 0
+    - _EnableEmissionHue: 1
+    - _EnableFOVWidth: 1
+    - _EnableHueShift: 0
+    - _EnableLUT: 0
+    - _EnableOutline: 1
+    - _EnableOutlineHue: 1
+    - _EnableParticleSwirl: 0
+    - _EnableRandomSeed: 0
+    - _EnableRimHue: 1
+    - _EnableRimLight: 1
+    - _EnableShadow: 1
+    - _EnableSpecular: 1
+    - _EnableSplit: 0
+    - _EnableStencil: 0
+    - _EnableStocking: 0
+    - _ExCheekIntensity: 0
+    - _ExMapThreshold: 0.5
+    - _ExShadowIntensity: 0
+    - _ExShyIntensity: 0
+    - _ExSpecularIntensity: 0
+    - _EyeShadowMat: 0
+    - _FaceMaterial: 0
+    - _FaceSoftness: 0.0001
+    - _FakeRefAddIntensity: 0.25
+    - _FakeRefBlendIntensity: 0.1
+    - _FilterLight: 1
+    - _FixLipOutline: 0
+    - _GlobalColorHue: 0
+    - _GlobalEmissionHue: 0
+    - _GlobalOutlineHue: 0
+    - _GlobalRimHue: 0
+    - _HairBlendSilhouette: 0.5
+    - _HairMaterial: 0
+    - _HairSideChoose: 0
+    - _HideCharaParts: 0
+    - _HideNPCParts: 1
+    - _IsTransparent: 0
+    - _LineRendererAniRandomSeed: 0
+    - _MaskChannelA: 0
+    - _MaskON: 0
+    - _MaskTransparency: 0
+    - _MatCapStrength: 1
+    - _MatCapStrengthInShadow: 1
+    - _Mid: 0
+    - _MultiLight: 1
+    - _NPCColorHelp: 0
+    - _NoiseSwitch: 0
+    - _NoseLinePower: 1
+    - _OSScale: 1
+    - _OnlyMask: 0
+    - _Opacity: 1
+    - _OutlineFixFront: 0.05
+    - _OutlineFixRange1: 0.1
+    - _OutlineFixRange2: 0.1
+    - _OutlineFixRange3: 0.1
+    - _OutlineFixRange4: 0.1
+    - _OutlineFixSide: 0.6
+    - _OutlineHue: 0
+    - _OutlineHue2: 0
+    - _OutlineHue3: 0
+    - _OutlineHue4: 0
+    - _OutlineHue5: 0
+    - _OutlineHue6: 0
+    - _OutlineHue7: 0
+    - _OutlineHue8: 0
+    - _OutlineMaskSource: 0
+    - _OutlineScale: 0.187
+    - _OutlineWidth: 0.1
+    - _OutlineZOff: 0
+    - _ReflectionBlendThreshold: 0.1
+    - _ReflectionReversedThreshold: 0.1
+    - _ReflectionRoughness: 1
+    - _ReflectionSoftness: 0.05
+    - _ReflectionThreshold: 0.5
+    - _RenderingMode: 0
+    - _ReplaceColor: 0
+    - _RimDark0: 0.5
+    - _RimDark1: 0.5
+    - _RimDark2: 0.5
+    - _RimDark3: 0.5
+    - _RimDark4: 0.5
+    - _RimDark5: 0.5
+    - _RimDark6: 0.5
+    - _RimDark7: 0.5
+    - _RimEdgeSoftness0: 0.1
+    - _RimEdgeSoftness1: 0.1
+    - _RimEdgeSoftness2: 0.1
+    - _RimEdgeSoftness3: 0.1
+    - _RimEdgeSoftness4: 0.1
+    - _RimEdgeSoftness5: 0.1
+    - _RimEdgeSoftness6: 0.1
+    - _RimEdgeSoftness7: 0.1
+    - _RimHue: 0
+    - _RimHue2: 0
+    - _RimHue3: 0
+    - _RimHue4: 0
+    - _RimHue5: 0
+    - _RimHue6: 0
+    - _RimHue7: 0
+    - _RimHue8: 0
+    - _RimLightMode: 1
+    - _RimMaskSource: 0
+    - _RimShadowCt: 1
+    - _RimShadowFeather0: 0.01
+    - _RimShadowFeather1: 0.01
+    - _RimShadowFeather2: 0.01
+    - _RimShadowFeather3: 0.01
+    - _RimShadowFeather4: 0.01
+    - _RimShadowFeather5: 0.01
+    - _RimShadowFeather6: 0.01
+    - _RimShadowFeather7: 0.01
+    - _RimShadowIntensity: 1
+    - _RimShadowWidth0: 1
+    - _RimShadowWidth1: 1
+    - _RimShadowWidth2: 1
+    - _RimShadowWidth3: 1
+    - _RimShadowWidth4: 1
+    - _RimShadowWidth5: 1
+    - _RimShadowWidth6: 1
+    - _RimShadowWidth7: 1
+    - _RimType0: 1
+    - _RimType1: 1
+    - _RimType2: 1
+    - _RimType3: 1
+    - _RimType4: 1
+    - _RimType5: 1
+    - _RimType6: 1
+    - _RimType7: 1
+    - _RimWidth: 1
+    - _Rimintensity: 1
+    - _SecondaryFade: 0
+    - _SecondaryUV: 0
+    - _SelfShadowDarken: 0
+    - _SelfShadowDepthOffset: 0
+    - _SelfShadowSampleOffset: 0
+    - _ShaderOptimizerEnabled: 0
+    - _ShadowRamp: 1
+    - _ShadowSoftness: 0.0001
+    - _ShiftColorSpeed: 0
+    - _ShiftEmissionSpeed: 0
+    - _ShiftOutlineSpeed: 0
+    - _ShiftRimSpeed: 0
+    - _ShowPartID: 0
+    - _SkyFresnelBaise: 0
+    - _SkyFresnelScale: 0
+    - _SkyFresnelSmooth: 0
+    - _SkyRange: 0
+    - _SkyStarDepthScale: 1
+    - _SkyStarMaskTexScale: 1
+    - _SkyStarMaskTexSpeed: 0
+    - _SkyStarTexScale: 1
+    - _SoftFar: 1
+    - _SoftNear: 0
+    - _SpecularIntensity0: 1
+    - _SpecularIntensity1: 1
+    - _SpecularIntensity2: 1
+    - _SpecularIntensity3: 1
+    - _SpecularIntensity4: 1
+    - _SpecularIntensity5: 1
+    - _SpecularIntensity6: 1
+    - _SpecularIntensity7: 1
+    - _SpecularRoughness0: 0.02
+    - _SpecularRoughness1: 0.02
+    - _SpecularRoughness2: 0.02
+    - _SpecularRoughness3: 0.02
+    - _SpecularRoughness4: 0.02
+    - _SpecularRoughness5: 0.02
+    - _SpecularRoughness6: 0.02
+    - _SpecularRoughness7: 0.02
+    - _SpecularShininess0: 10
+    - _SpecularShininess1: 10
+    - _SpecularShininess2: 10
+    - _SpecularShininess3: 10
+    - _SpecularShininess4: 10
+    - _SpecularShininess5: 10
+    - _SpecularShininess6: 10
+    - _SpecularShininess7: 10
+    - _SrcBlend: 5
+    - _StarAffectedByLight: 1
+    - _StarDensity: 0.5
+    - _StarMode: 0
+    - _StarrySky: 0
+    - _StarsAreDiffuse: 0
+    - _StencilCompA: 0
+    - _StencilCompB: 0
+    - _StencilPassA: 2
+    - _StencilPassB: 0
+    - _StencilRefA: 0
+    - _StencilRefB: 0
+    - _StockDarkWidth: 0.5
+    - _StockRoughness: 1
+    - _StockSP: 0.25
+    - _Stockpower: 1
+    - _Stockpower1: 1
+    - _UseCubeMap: 0
+    - _UseCustomColors: 0
+    - _UseDifAlphaStencil: 2
+    - _UseHairSideFade: 0
+    - _UseHeightLerp: 0
+    - _UseHueMask: 0
+    - _UseMatcap: 0
+    - _UseMaterialValuesLUT: 1
+    - _UseSecondaryTex: 0
+    - _UseSelfShadow: 0
+    - _UseWorldPosDissolve: 0
+    - _VertexColor: 1
+    - _backfdceuv2: 1
+    - _mBloomIntensity0: 0
+    - _mBloomIntensity1: 0
+    - _mBloomIntensity2: 0
+    - _mBloomIntensity3: 0
+    - _mBloomIntensity4: 0
+    - _mBloomIntensity5: 0
+    - _mBloomIntensity6: 0
+    - _mBloomIntensity7: 0
+    - _sdwColorMask: 16
+    - _sdwComp: 8
+    - _sdwDst: 1
+    - _sdwPass: 0
+    - _sdwRef: 0
+    - _sdwSrc: 1
+    - _sdwZTest: 2
+    - _sdwZWrite: 1
+    - end_bloomcontrol: 0
+    - end_caustic: 0
+    - end_colorhue: 0
+    - end_customcolor0: 0
+    - end_customcolor1: 0
+    - end_customcolor2: 0
+    - end_customcolor3: 0
+    - end_customcolor4: 0
+    - end_customcolor5: 0
+    - end_customcolor6: 0
+    - end_customcolors: 0
+    - end_customskincolor: 0
+    - end_debugOptions: 0
+    - end_directionmask: 0
+    - end_dissolve: 0
+    - end_dissolvemask: 0
+    - end_dissolveoutline: 0
+    - end_disspos: 0
+    - end_faceexpression: 0
+    - end_faceshading: 0
+    - end_facingdirection: 0
+    - end_fakereflection: 0
+    - end_glowhue: 0
+    - end_heightcolors: 0
+    - end_heightfog: 0
+    - end_hueshift: 0
+    - end_lightandshadow: 0
+    - end_lighting: 0
+    - end_lightingrim: 0
+    - end_lightingrimcolor: 0
+    - end_lightingrimdark: 0
+    - end_lightingrimshadow: 0
+    - end_lightingrimsoftness: 0
+    - end_lightingrimtype: 0
+    - end_lut: 0
+    - end_main: 0
+    - end_mainalpha: 0
+    - end_maincolor: 0
+    - end_matcap: 0
+    - end_outlinecolor: 0
+    - end_outlinehue: 0
+    - end_outlinelip: 0
+    - end_outlines: 0
+    - end_particleswirl: 0
+    - end_pmintensity: 0
+    - end_rand: 0
+    - end_renderingOptions: 0
+    - end_rimhue: 0
+    - end_rimshdwcolor: 0
+    - end_rimshdwfeather: 0
+    - end_rimshdwwidth: 0
+    - end_secondarymain: 0
+    - end_selfshadow: 0
+    - end_shadowcontrol: 0
+    - end_shadowstenci: 0
+    - end_showids: 0
+    - end_specialeffects: 0
+    - end_specialeffectsemission: 0
+    - end_specular: 0
+    - end_specularcolor: 0
+    - end_specularintensity: 0
+    - end_specularroughness: 0
+    - end_specularshininess: 0
+    - end_starrysky: 0
+    - end_stencilalpha: 0
+    - end_stencilfade: 0
+    - end_stockings: 0
+    - footer_discord: 0
+    - footer_github: 0
+    - shader_is_using_HoyoToon_editor: 0
+    - shader_is_using_hoyeditor: 0
+    - start_bloomcontrol: 0
+    - start_caustic: 0
+    - start_colorhue: 0
+    - start_customcolor0: 0
+    - start_customcolor1: 0
+    - start_customcolor2: 0
+    - start_customcolor3: 0
+    - start_customcolor4: 0
+    - start_customcolor5: 0
+    - start_customcolor6: 0
+    - start_customcolors: 0
+    - start_customskincolor: 0
+    - start_debugOptions: 0
+    - start_directionmask: 0
+    - start_dissolve: 0
+    - start_dissolvemask: 0
+    - start_dissolveoutline: 0
+    - start_disspos: 0
+    - start_faceexpression: 0
+    - start_faceshading: 0
+    - start_facingdirection: 0
+    - start_fakereflection: 0
+    - start_glowhue: 0
+    - start_heightcolors: 0
+    - start_heightfog: 0
+    - start_hueshift: 0
+    - start_lightandshadow: 0
+    - start_lighting: 0
+    - start_lightingrim: 0
+    - start_lightingrimcolor: 0
+    - start_lightingrimdark: 0
+    - start_lightingrimshadow: 0
+    - start_lightingrimsoftness: 0
+    - start_lightingrimtype: 0
+    - start_lut: 0
+    - start_main: 0
+    - start_mainalpha: 0
+    - start_maincolor: 0
+    - start_matcap: 0
+    - start_outlinecolor: 0
+    - start_outlinehue: 0
+    - start_outlinelip: 0
+    - start_outlines: 0
+    - start_particleswirl: 0
+    - start_pmintensity: 0
+    - start_rand: 0
+    - start_renderingOptions: 0
+    - start_rimhue: 0
+    - start_rimshdwcolor: 0
+    - start_rimshdwfeather: 0
+    - start_rimshdwwidth: 0
+    - start_secondarymain: 0
+    - start_selfshadow: 0
+    - start_shadowcontrol: 0
+    - start_shadowstencil: 0
+    - start_showids: 0
+    - start_specialeffects: 0
+    - start_specialeffectsemission: 0
+    - start_specular: 0
+    - start_specularcolor: 0
+    - start_specularintensity: 0
+    - start_specularroughness: 0
+    - start_specularshininess: 0
+    - start_starrysky: 0
+    - start_stencilalpha: 0
+    - start_stencilfade: 0
+    - start_stockings: 0
+    - variant_selector: 0
+    m_Colors:
+    - _BackColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CausColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CausTexSTA: {r: 1, g: 1, b: 0, a: 0}
+    - _CausTexSTB: {r: 1, g: 1, b: 0, a: 0}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color0: {r: 1, g: 1, b: 1, a: 1}
+    - _Color1: {r: 1, g: 1, b: 1, a: 1}
+    - _Color2: {r: 1, g: 1, b: 1, a: 1}
+    - _Color3: {r: 1, g: 1, b: 1, a: 1}
+    - _Color4: {r: 1, g: 1, b: 1, a: 1}
+    - _Color5: {r: 1, g: 1, b: 1, a: 1}
+    - _Color6: {r: 1, g: 1, b: 1, a: 1}
+    - _Color7: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor0: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor10: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor11: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor12: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor13: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor2: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor3: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor4: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor5: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor6: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor7: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor8: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomColor9: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomSkinColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CustomSkinColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _DisGSpeed: {r: 0, g: 0, b: 1, a: 1}
+    - _DisRSpeed: {r: 0, g: 0, b: 0, a: 0}
+    - _DisStep: {r: 1.1, g: 0, b: 0, a: 0}
+    - _DissolveComponent: {r: 1, g: 0, b: 0, a: 0}
+    - _DissolveDiretcionXYZ: {r: 0, g: 0, b: 0, a: 0}
+    - _DissolveOutlineColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _DissolveOutlineColor2: {r: 0, g: 0, b: 0, a: 0}
+    - _DissolveOutlineSmoothStep: {r: 0, g: 0, b: 0, a: 0}
+    - _DissolvePosMaskPos: {r: 1, g: 0, b: 0, a: 1}
+    - _DissolvePosMaskRootOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _DissolveST: {r: 1, g: 1, b: 0, a: 0}
+    - _DissolveUVSpeed: {r: 0, g: 0, b: 0, a: 0}
+    - _DistortionST: {r: 1, g: 1, b: 0, a: 0}
+    - _ES_EP_EffectParticle: {r: 0, g: 0, b: 1, a: 1}
+    - _ES_EffCustomLightPosition: {r: 1, g: 0, b: 0, a: 1}
+    - _ES_HeightLerpBottomColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    - _ES_HeightLerpMiddleColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ES_HeightLerpTopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ES_LevelHighLightColor: {r: 1, g: 1, b: 1, a: 0.5}
+    - _ES_LevelShadowColor: {r: 1, g: 1, b: 1, a: 0.5}
+    - _ES_LevelSkinLightColor: {r: 1, g: 1, b: 1, a: 0.5}
+    - _ES_LevelSkinShadowColor: {r: 1, g: 1, b: 1, a: 0.5}
+    - _ES_RimLightOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _ES_RimShadowColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ES_SPColor: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionTintColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ExCheekColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ExShadowColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ExShyColor: {r: 1, g: 1, b: 1, a: 1}
+    - _InsideColor: {r: 1, g: 1, b: 1, a: 0}
+    - _Lut2DTexParam: {r: 0.00098, g: 0.03125, b: 31, a: 0}
+    - _MainChannel: {r: 1, g: 0, b: 0, a: 1}
+    - _MainChannelRGB: {r: 1, g: 0, b: 0, a: 0}
+    - _MainSpeed: {r: 0, g: 0, b: 1, a: 0}
+    - _MaskChannel: {r: 1, g: 0, b: 0, a: 0}
+    - _MaskTransparencyChannel: {r: 0, g: 0, b: 0, a: 1}
+    - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
+    - _MidColor: {r: 1, g: 1, b: 1, a: 0.1}
+    - _NoiseSpeed: {r: 0, g: 0, b: 1, a: 1}
+    - _NoseLineColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutSideColor: {r: 1, g: 1, b: 1, a: 0}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor0: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor1: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor2: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor3: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor4: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor5: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor6: {r: 0, g: 0, b: 0, a: 1}
+    - _OutlineColor7: {r: 0, g: 0, b: 0, a: 1}
+    - _ReflectionBlendColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ReflectionColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor0: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor2: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor3: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor4: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor5: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor6: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor7: {r: 1, g: 1, b: 1, a: 1}
+    - _RimOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _RimShadowColor0: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor2: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor3: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor4: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor5: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor6: {r: 1, g: 1, b: 1, a: 1}
+    - _RimShadowColor7: {r: 1, g: 1, b: 1, a: 1}
+    - _ShadowColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    - _SkyFresnelColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SkyStarColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SkyStarSpeed: {r: 0, g: 0, b: 0, a: 0}
+    - _SmoothStep: {r: 0, g: 0, b: 0, a: 0}
+    - _SpecularColor0: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor1: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor2: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor3: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor4: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor5: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor6: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor7: {r: 1, g: 1, b: 1, a: 1}
+    - _StockDarkcolor: {r: 1, g: 1, b: 1, a: 1}
+    - _Stockcolor: {r: 1, g: 1, b: 1, a: 1}
+    - _VertexColorFallback: {r: 1, g: 1, b: 1, a: 1}
+    - _headForwardVector: {r: 0, g: 0, b: 1, a: 0}
+    - _headRightVector: {r: -1, g: 0, b: 0, a: 0}
+    - _headUpVector: {r: 0, g: 1, b: 0, a: 0}
+    - _mBloomColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
