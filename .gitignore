@@ -32,6 +32,15 @@ Assets/StreamingAssets/aa.meta
 Assets/StreamingAssets/aa/*
 Assets/DebugCaptures/
 
+# Local SR extraction outputs
+SR/characters/sparkle/SR_4.4_latest/
+SR/characters/sparkle/materials/
+SR/characters/sparkle/models/
+SR/characters/sparkle/textures/
+SR/ReconstructedPrefabs/
+HoyoToon/Shaders/Honkai Star Rail/TEST.mat
+HoyoToon/Shaders/Honkai Star Rail/TEST.mat.meta
+
 # OS files
 .DS_Store
 Thumbs.db
