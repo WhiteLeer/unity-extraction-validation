@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -82,7 +83,10 @@ namespace SrEffectPrefabTools
                     {
                         var particleSystem = gameObject.GetComponent<ParticleSystem>() ??
                                              throw new InvalidOperationException($"Failed to create ParticleSystem on '{node.Path}'.");
-                        ApplyParticleSystem(particleSystem, source.Read<ParticleSystemData>(component.ParametersFile));
+                        if (component.ParametersStatus == "external-type-tree-exported")
+                            ApplyNativeSerializedData(particleSystem, source.ReadText(component.ParametersFile), node.Path, warnings);
+                        else
+                            ApplyParticleSystem(particleSystem, source.Read<ParticleSystemData>(component.ParametersFile));
                         particleSystemCount++;
                     }
                     else if (component.Type == "ParticleSystemRenderer")
@@ -90,6 +94,12 @@ namespace SrEffectPrefabTools
                         var particleSystem = gameObject.GetComponent<ParticleSystem>() ??
                                              throw new InvalidOperationException($"Failed to create ParticleSystemRenderer on '{node.Path}'.");
                         var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+                        if (component.ParametersStatus == "external-type-tree-exported" && !string.IsNullOrEmpty(component.ParametersFile))
+                        {
+                            var rendererJson = source.ReadText(component.ParametersFile);
+                            ApplyNativeSerializedData(renderer, rendererJson, node.Path, warnings);
+                            ApplyParticleRendererVertexStreams(renderer, rendererJson);
+                        }
                         if (component.ParticleRenderer != null)
                         {
                             renderer.enabled = component.ParticleRenderer.Enabled;
@@ -122,6 +132,93 @@ namespace SrEffectPrefabTools
                       $"{particleRendererCount} ParticleSystemRenderers, {animatorCount} Animators, {lightCount} Lights. " +
                       $"Preserved SR extension warnings: {warnings.Count}.");
             return prefab;
+        }
+
+        private static void ApplyNativeSerializedData(UnityEngine.Object target, string json, string nodePath, List<string> warnings)
+        {
+            try
+            {
+                var serialized = new SerializedObject(target);
+                var root = JObject.Parse(json);
+                var applied = 0;
+                foreach (var field in root.Properties())
+                {
+                    var property = serialized.FindProperty(field.Name);
+                    if (property != null)
+                        applied += ApplySerializedValue(property, field.Value);
+                }
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(target);
+                if (applied == 0)
+                    warnings.Add($"{nodePath}: native {target.GetType().Name} data contained no compatible serialized fields.");
+            }
+            catch (Exception exception)
+            {
+                warnings.Add($"{nodePath}: native {target.GetType().Name} data could not be applied: {exception.Message}");
+            }
+        }
+
+        private static int ApplySerializedValue(SerializedProperty property, JToken value)
+        {
+            if (property.propertyType == SerializedPropertyType.ObjectReference)
+                return 0;
+
+            if (property.isArray && property.propertyType != SerializedPropertyType.String && value is JArray array)
+            {
+                property.arraySize = array.Count;
+                var applied = 1;
+                for (var index = 0; index < array.Count; index++)
+                    applied += ApplySerializedValue(property.GetArrayElementAtIndex(index), array[index]);
+                return applied;
+            }
+
+            if (value is JObject objectValue)
+            {
+                var applied = 0;
+                foreach (var field in objectValue.Properties())
+                {
+                    var child = property.FindPropertyRelative(field.Name);
+                    if (child != null)
+                        applied += ApplySerializedValue(child, field.Value);
+                }
+                return applied;
+            }
+
+            if (value is not JValue scalar || scalar.Value == null)
+                return 0;
+
+            switch (property.propertyType)
+            {
+                case SerializedPropertyType.Boolean:
+                    property.boolValue = scalar.Value<bool>();
+                    return 1;
+                case SerializedPropertyType.Integer:
+                case SerializedPropertyType.Enum:
+                case SerializedPropertyType.Character:
+                case SerializedPropertyType.LayerMask:
+                    property.longValue = scalar.Value<long>();
+                    return 1;
+                case SerializedPropertyType.Float:
+                    property.doubleValue = scalar.Value<double>();
+                    return 1;
+                case SerializedPropertyType.String:
+                    property.stringValue = scalar.Value<string>();
+                    return 1;
+                default:
+                    return 0;
+            }
+        }
+
+        private static void ApplyParticleRendererVertexStreams(ParticleSystemRenderer renderer, string json)
+        {
+            var root = JObject.Parse(json);
+            if (root.Value<bool>("m_UseCustomVertexStreams") == false || root["m_VertexStreams"] is not JArray streams)
+                return;
+
+            renderer.SetActiveVertexStreams(streams
+                .Values<int>()
+                .Select(value => (ParticleSystemVertexStream)value)
+                .ToList());
         }
 
         private static Dictionary<string, Mesh> CreateMeshes(Manifest manifest, string derivedRoot)
@@ -484,6 +581,7 @@ namespace SrEffectPrefabTools
         private sealed class ManifestComponent
         {
             public string Type;
+            public string ParametersStatus;
             public string ParametersFile;
             public MonoBehaviourInfo MonoBehaviour;
             public ParticleRendererInfo ParticleRenderer;
@@ -718,12 +816,23 @@ namespace SrEffectPrefabTools
 
             public T Read<T>(string relativePath)
             {
+                return JsonUtility.FromJson<T>(ReadText(relativePath));
+            }
+
+            public string ReadText(string relativePath)
+            {
                 if (archive != null)
-                    return ReadEntry<T>(relativePath);
+                {
+                    var entry = archive.GetEntry(relativePath.Replace('\\', '/')) ??
+                                throw new InvalidDataException($"Package entry '{relativePath}' was not found.");
+                    using var reader = new StreamReader(entry.Open());
+                    return reader.ReadToEnd();
+                }
+
                 var path = Path.Combine(directory, relativePath.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(path))
                     throw new FileNotFoundException("SR prefab component data was not found.", path);
-                return JsonUtility.FromJson<T>(File.ReadAllText(path));
+                return File.ReadAllText(path);
             }
 
             public byte[] ReadBytes(string relativePath)
