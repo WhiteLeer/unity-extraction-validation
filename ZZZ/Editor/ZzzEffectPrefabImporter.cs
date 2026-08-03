@@ -13,6 +13,7 @@ namespace ZzzEffectPrefabTools
     public static class ZzzEffectPrefabImporter
     {
         private const string DefaultOutputFolder = "Assets/unity-extraction-validation/ZZZ/ReconstructedPrefabs";
+        private const string SharedShaderAssetPath = "Assets/unity-extraction-validation/ZZZ/Shader/ZZZ.shader";
 
         [MenuItem("Tools/ZZZ/Rebuild Prefab From Manifest...")]
         public static void ImportFromDialog()
@@ -43,7 +44,7 @@ namespace ZzzEffectPrefabTools
             if (!outputRoot.StartsWith("Assets/", StringComparison.Ordinal))
                 throw new ArgumentException("The output root must be under Assets/.", nameof(outputRoot));
 
-            var packages = Directory.GetFiles(packageRoot, "*.srprefab", SearchOption.AllDirectories)
+            var packages = Directory.GetFiles(packageRoot, "*.zzzprefab", SearchOption.AllDirectories)
                 .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             var imported = 0;
@@ -164,6 +165,10 @@ namespace ZzzEffectPrefabTools
 
             var rootNode = nodes.FirstOrDefault(node => string.IsNullOrEmpty(ParentPath(node.Path))) ?? nodes[0];
             var root = objects[rootNode.Path];
+            var avatar = BuildGenericAvatar(root, derivedRoot, manifest.Name);
+            var animator = root.GetComponent<Animator>();
+            if (animator != null && avatar != null)
+                animator.avatar = avatar;
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, outputAssetPath);
             UnityEngine.Object.DestroyImmediate(root);
             AssetDatabase.SaveAssets();
@@ -174,6 +179,23 @@ namespace ZzzEffectPrefabTools
                       $"{manifest.Materials?.Length ?? 0} materials, {manifest.Meshes?.Length ?? 0} meshes. " +
                       $"ParticleSystem parameters unavailable: {missingParameters}.");
             return prefab;
+        }
+
+        private static Avatar BuildGenericAvatar(GameObject root, string derivedRoot, string manifestName)
+        {
+            var avatar = AvatarBuilder.BuildGenericAvatar(root, string.Empty);
+            if (avatar == null)
+            {
+                Debug.LogWarning($"ZZZ Avatar generation returned null for '{manifestName}'.");
+                return null;
+            }
+
+            avatar.name = $"{SanitizeFileName(manifestName)}_Avatar";
+            var avatarPath = $"{derivedRoot}/Avatar/{avatar.name}.asset";
+            EnsureAssetFolder(Path.GetDirectoryName(avatarPath)?.Replace('\\', '/') ?? derivedRoot);
+            AssetDatabase.CreateAsset(avatar, avatarPath);
+            Debug.Log($"Generated ZZZ Generic Avatar '{avatarPath}' (valid={avatar.isValid}, human={avatar.isHuman}).");
+            return avatar;
         }
 
         private static Dictionary<string, Mesh> CreateMeshes(Manifest manifest, string derivedRoot)
@@ -195,6 +217,10 @@ namespace ZzzEffectPrefabTools
                     mesh.colors = ToColorArray(info.Colors, info.VertexCount);
                 if (info.UV0?.Length >= info.VertexCount * 2)
                     mesh.uv = ToVector2Array(info.UV0, info.VertexCount);
+                if (info.BindPoses?.Length > 0)
+                    mesh.bindposes = info.BindPoses.Select(ToUnityMatrix).ToArray();
+                if (info.Skin?.Length == info.VertexCount)
+                    mesh.boneWeights = info.Skin.Select(ToUnityBoneWeight).ToArray();
                 mesh.subMeshCount = info.SubMeshes?.Length ?? 0;
                 for (var index = 0; index < mesh.subMeshCount; index++)
                     mesh.SetTriangles((info.SubMeshes[index].Indices ?? Array.Empty<uint>()).Select(value => (int)value).ToArray(), index, false);
@@ -213,9 +239,26 @@ namespace ZzzEffectPrefabTools
         private static Dictionary<string, Material> CreateMaterials(ImportSource source, Manifest manifest, string derivedRoot)
         {
             var result = new Dictionary<string, Material>(StringComparer.OrdinalIgnoreCase);
-            var shader = Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Unlit/Transparent");
+            var shader = LoadSharedShader();
             if (shader == null)
-                throw new InvalidOperationException("Unity has no fallback particle shader available.");
+                throw new InvalidOperationException($"Failed to load the shared ZZZ shader at '{SharedShaderAssetPath}'.");
+
+            var textureUsesColorSpace = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (var info in manifest.Materials ?? Array.Empty<ManifestMaterial>())
+            {
+                foreach (var property in info.Textures ?? Array.Empty<TextureProperty>())
+                {
+                    if (string.IsNullOrEmpty(property.PackageEntry))
+                        continue;
+                    var isColorTexture = IsColorTextureProperty(property.Name);
+                    if (textureUsesColorSpace.TryGetValue(property.PackageEntry, out var existing))
+                        textureUsesColorSpace[property.PackageEntry] = existing || isColorTexture;
+                    else
+                        textureUsesColorSpace[property.PackageEntry] = isColorTexture;
+                }
+            }
+
+            var textures = new Dictionary<string, Texture2D>(StringComparer.OrdinalIgnoreCase);
             foreach (var info in manifest.Materials ?? Array.Empty<ManifestMaterial>())
             {
                 var material = new Material(shader) { name = info.Name, enableInstancing = info.EnableInstancing };
@@ -236,10 +279,22 @@ namespace ZzzEffectPrefabTools
                     var absoluteTexturePath = ToAbsolutePath(texturePath);
                     Directory.CreateDirectory(Path.GetDirectoryName(absoluteTexturePath) ?? throw new InvalidOperationException(
                         $"Could not resolve texture directory for '{texturePath}'."));
-                    if (!File.Exists(absoluteTexturePath))
-                        File.WriteAllBytes(absoluteTexturePath, source.ReadBytes(property.PackageEntry));
-                    AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceSynchronousImport);
-                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+                    if (!textures.TryGetValue(property.PackageEntry, out var texture))
+                    {
+                        if (!File.Exists(absoluteTexturePath))
+                            File.WriteAllBytes(absoluteTexturePath, source.ReadBytes(property.PackageEntry));
+                        AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceSynchronousImport);
+                        if (AssetImporter.GetAtPath(texturePath) is TextureImporter importer)
+                        {
+                            importer.sRGBTexture = textureUsesColorSpace.TryGetValue(property.PackageEntry, out var useColorSpace) && useColorSpace;
+                            importer.wrapMode = TextureWrapMode.Repeat;
+                            importer.filterMode = FilterMode.Bilinear;
+                            importer.mipmapEnabled = true;
+                            importer.SaveAndReimport();
+                        }
+                        texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+                        textures[property.PackageEntry] = texture;
+                    }
                     material.SetTexture(property.Name, texture);
                     material.SetTextureScale(property.Name, property.Scale.ToVector2());
                     material.SetTextureOffset(property.Name, property.Offset.ToVector2());
@@ -251,6 +306,28 @@ namespace ZzzEffectPrefabTools
             }
             AssetDatabase.SaveAssets();
             return result;
+        }
+
+        private static Shader LoadSharedShader()
+        {
+            AssetDatabase.ImportAsset(SharedShaderAssetPath, ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<Shader>(SharedShaderAssetPath);
+        }
+
+        private static bool IsColorTextureProperty(string propertyName)
+        {
+            if (string.IsNullOrEmpty(propertyName))
+                return false;
+            return string.Equals(propertyName, "_MainTex", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(propertyName, "_BaseMap", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(propertyName, "_BaseColorMap", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(propertyName, "_AlbedoMap", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(propertyName, "_DiffuseMap", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(propertyName, "_EmissionMap", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.IndexOf("Light", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   propertyName.IndexOf("Ramp", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   propertyName.IndexOf("MatCap", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   propertyName.IndexOf("EyeColor", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static void ApplyParticleRenderer(ParticleSystemRenderer renderer, ParticleRendererInfo info, Dictionary<string, Mesh> meshes)
@@ -354,6 +431,35 @@ namespace ZzzEffectPrefabTools
         {
             var stride = values.Length / count;
             return Enumerable.Range(0, count).Select(i => new Color(values[i * stride], values[i * stride + 1], values[i * stride + 2], stride > 3 ? values[i * stride + 3] : 1f)).ToArray();
+        }
+
+        private static UnityEngine.Matrix4x4 ToUnityMatrix(Matrix4x4Data value)
+        {
+            return new UnityEngine.Matrix4x4
+            {
+                // ZZZ stores bind poses with the matrix transposed relative to Unity's layout.
+                m00 = value.M00, m01 = value.M10, m02 = value.M20, m03 = value.M30,
+                m10 = value.M01, m11 = value.M11, m12 = value.M21, m13 = value.M31,
+                m20 = value.M02, m21 = value.M12, m22 = value.M22, m23 = value.M32,
+                m30 = value.M03, m31 = value.M13, m32 = value.M23, m33 = value.M33,
+            };
+        }
+
+        private static BoneWeight ToUnityBoneWeight(BoneWeightData value)
+        {
+            var weights = value.Weight ?? Array.Empty<float>();
+            var indices = value.BoneIndex ?? Array.Empty<int>();
+            return new BoneWeight
+            {
+                weight0 = weights.Length > 0 ? weights[0] : 0f,
+                weight1 = weights.Length > 1 ? weights[1] : 0f,
+                weight2 = weights.Length > 2 ? weights[2] : 0f,
+                weight3 = weights.Length > 3 ? weights[3] : 0f,
+                boneIndex0 = indices.Length > 0 ? indices[0] : 0,
+                boneIndex1 = indices.Length > 1 ? indices[1] : 0,
+                boneIndex2 = indices.Length > 2 ? indices[2] : 0,
+                boneIndex3 = indices.Length > 3 ? indices[3] : 0,
+            };
         }
 
         private static void SetFinite(float value, Action<float> setter)
@@ -471,7 +577,16 @@ namespace ZzzEffectPrefabTools
         {
             public string SourceCAB; public long PathID; public string Name; public int VertexCount;
             public float[] Vertices; public float[] Normals; public float[] Tangents; public float[] Colors; public float[] UV0;
+            public Matrix4x4Data[] BindPoses; public BoneWeightData[] Skin;
             public ManifestSubMesh[] SubMeshes;
+        }
+        [Serializable] private sealed class BoneWeightData { public float[] Weight; public int[] BoneIndex; }
+        [Serializable] private struct Matrix4x4Data
+        {
+            public float M00; public float M10; public float M20; public float M30;
+            public float M01; public float M11; public float M21; public float M31;
+            public float M02; public float M12; public float M22; public float M32;
+            public float M03; public float M13; public float M23; public float M33;
         }
         [Serializable] private sealed class ManifestSubMesh { public uint[] Indices; }
         [Serializable] private sealed class ManifestMaterial
@@ -498,7 +613,7 @@ namespace ZzzEffectPrefabTools
             {
                 if (!File.Exists(path))
                     throw new FileNotFoundException("ZZZ prefab package was not found.", path);
-                if (string.Equals(Path.GetExtension(path), ".srprefab", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(path), ".zzzprefab", StringComparison.OrdinalIgnoreCase))
                 {
                     archive = ZipFile.OpenRead(path);
                     Manifest = ReadEntry<Manifest>("manifest.json");

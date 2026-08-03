@@ -37,10 +37,12 @@ SR/characters/sparkle/SR_4.4_latest/
 SR/characters/sparkle/materials/
 SR/characters/sparkle/models/
 SR/characters/sparkle/textures/
+SR/characters/**
 SR/ReconstructedPrefabs/
 
 # Local ZZZ extraction outputs
 ZZZ/characters/norma/ZZZ_3.0_latest/
+ZZZ/characters/**
 HoyoToon/Shaders/Honkai Star Rail/TEST.mat
 HoyoToon/Shaders/Honkai Star Rail/TEST.mat.meta
 

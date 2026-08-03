@@ -36,6 +36,34 @@ namespace SrEffectPrefabTools
             Import(manifestPath, outputPath);
         }
 
+        public static void ImportDirectoryFromCommandLine()
+        {
+            var arguments = Environment.GetCommandLineArgs();
+            var manifestDirectory = ReadArgument(arguments, "-srManifestDir");
+            var outputRoot = ReadArgument(arguments, "-srOutputRoot").Replace('\\', '/').TrimEnd('/');
+            if (!outputRoot.StartsWith("Assets/", StringComparison.Ordinal))
+                throw new ArgumentException("The output root must be under Assets.", nameof(outputRoot));
+
+            var packages = Directory.GetFiles(manifestDirectory, "*.srprefab", SearchOption.AllDirectories)
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (packages.Length == 0)
+                throw new InvalidDataException($"No .srprefab packages found under '{manifestDirectory}'.");
+
+            EnsureAssetFolder(outputRoot);
+            foreach (var package in packages)
+            {
+                using var source = new ImportSource(package);
+                var outputPath = AssetDatabase.GenerateUniqueAssetPath(
+                    $"{outputRoot}/{SanitizeFileName(source.Manifest.Name)}.prefab");
+                Import(package, outputPath);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"Converted {packages.Length} SR prefab packages to native Unity assets under '{outputRoot}'.");
+        }
+
         public static GameObject Import(string manifestPath, string outputAssetPath)
         {
             using var source = new ImportSource(manifestPath);
@@ -83,10 +111,16 @@ namespace SrEffectPrefabTools
                     {
                         var particleSystem = gameObject.GetComponent<ParticleSystem>() ??
                                              throw new InvalidOperationException($"Failed to create ParticleSystem on '{node.Path}'.");
-                        if (component.ParametersStatus == "external-type-tree-exported")
+                        if (component.ParametersStatus?.StartsWith("external-type-tree-", StringComparison.Ordinal) == true &&
+                            !string.IsNullOrEmpty(component.ParametersFile))
                             ApplyNativeSerializedData(particleSystem, source.ReadText(component.ParametersFile), node.Path, warnings);
                         else
-                            ApplyParticleSystem(particleSystem, source.Read<ParticleSystemData>(component.ParametersFile));
+                        {
+                            var particleJson = source.ReadText(component.ParametersFile);
+                            ApplyParticleSystem(particleSystem, JsonUtility.FromJson<ParticleSystemData>(particleJson));
+                            ApplySerializedColorLifetimeFallback(particleSystem, particleJson);
+                        }
+                        EnsureParticleSystemDefaults(particleSystem);
                         particleSystemCount++;
                     }
                     else if (component.Type == "ParticleSystemRenderer")
@@ -103,21 +137,31 @@ namespace SrEffectPrefabTools
                         if (component.ParticleRenderer != null)
                         {
                             renderer.enabled = component.ParticleRenderer.Enabled;
-                            renderer.sharedMaterials = (component.ParticleRenderer.MaterialPointers ?? Array.Empty<PointerInfo>())
+                            var rendererMaterials = (component.ParticleRenderer.MaterialPointers ?? Array.Empty<PointerInfo>())
                                 .Select(pointer => FindMaterial(materials, pointer))
                                 .ToArray();
+                            renderer.sharedMaterials = rendererMaterials;
+                            if (rendererMaterials.Length == 0 || rendererMaterials.All(material => material == null))
+                                renderer.enabled = false;
                             ApplyParticleRenderer(renderer, component.ParticleRenderer, meshes);
                         }
                         particleRendererCount++;
                     }
-                    else if (component.Type == "Animator")
+                    else if (component.Type == "Animator" && component.ParametersStatus != "not-required")
                     {
+                        var animator = gameObject.GetComponent<Animator>() ??
+                                       throw new InvalidOperationException($"Failed to create Animator on '{node.Path}'.");
+                        if (component.ParametersStatus?.StartsWith("external-type-tree-", StringComparison.Ordinal) == true &&
+                            !string.IsNullOrEmpty(component.ParametersFile))
+                            ApplyNativeSerializedData(animator, source.ReadText(component.ParametersFile), node.Path, warnings);
                         animatorCount++;
                     }
                     else if (component.MonoBehaviour != null && component.MonoBehaviour.ClassName == "CustomAdditionalLightData")
                         warnings.Add($"{node.Path}: CustomAdditionalLightData is preserved in {component.ParametersFile}, but its SR runtime behavior is not reconstructed.");
                 }
             }
+
+            NormalizeParticleLights(objects, warnings);
 
             var root = objects[nodes[0].Path];
             var outputDirectory = Path.GetDirectoryName(outputAssetPath)?.Replace('\\', '/');
@@ -134,6 +178,34 @@ namespace SrEffectPrefabTools
             return prefab;
         }
 
+        private static void NormalizeParticleLights(
+            Dictionary<string, GameObject> objects,
+            List<string> warnings)
+        {
+            foreach (var gameObject in objects.Values)
+            {
+                var particleSystem = gameObject.GetComponent<ParticleSystem>();
+                if (particleSystem == null)
+                    continue;
+
+                var lights = particleSystem.lights;
+                if (!lights.enabled || lights.light != null)
+                    continue;
+
+                var childLight = gameObject.GetComponentsInChildren<Light>(true).FirstOrDefault();
+                if (childLight != null)
+                {
+                    lights.light = childLight;
+                    warnings.Add($"{gameObject.name}: ParticleSystem LightsModule was rebound to child Light '{childLight.name}'.");
+                }
+                else
+                {
+                    lights.enabled = false;
+                    warnings.Add($"{gameObject.name}: ParticleSystem LightsModule had no Light reference; disabled to avoid invalid native state.");
+                }
+            }
+        }
+
         private static void ApplyNativeSerializedData(UnityEngine.Object target, string json, string nodePath, List<string> warnings)
         {
             try
@@ -143,6 +215,16 @@ namespace SrEffectPrefabTools
                 var applied = 0;
                 foreach (var field in root.Properties())
                 {
+                    // ParticleSystemRenderer owns these fields through its public API.
+                    // Writing the old TypeTree representation first and then calling
+                    // SetActiveVertexStreams/enableGPUInstancing can leave native
+                    // renderer state inconsistent during URP culling.
+                    if (target is ParticleSystemRenderer &&
+                        (field.Name == "m_UseCustomVertexStreams" ||
+                         field.Name == "m_VertexStreams" ||
+                         field.Name == "m_EnableGPUInstancing"))
+                        continue;
+
                     var property = serialized.FindProperty(field.Name);
                     if (property != null)
                         applied += ApplySerializedValue(property, field.Value);
@@ -264,18 +346,31 @@ namespace SrEffectPrefabTools
                     renderer.renderMode = (ParticleSystemRenderMode)info.RenderMode;
                 if (info.SortMode >= 0 && info.SortMode <= (int)ParticleSystemSortMode.OldestInFront)
                     renderer.sortMode = (ParticleSystemSortMode)info.SortMode;
-                SetFinite(info.MinParticleSize, value => renderer.minParticleSize = value);
-                SetFinite(info.MaxParticleSize, value => renderer.maxParticleSize = value);
+                // The SR 4.4 partial renderer prefix can contain zero-filled or
+                // misaligned values. Do not overwrite Unity's safe defaults with
+                // an invalid normalized size; maxParticleSize == 0 makes the
+                // billboard renderer effectively invisible.
+                SetNormalizedRendererValue(info.MinParticleSize, value => renderer.minParticleSize = value, allowZero: true);
+                SetNormalizedRendererValue(info.MaxParticleSize, value => renderer.maxParticleSize = value, allowZero: false);
                 SetFinite(info.CameraVelocityScale, value => renderer.cameraVelocityScale = value);
                 SetFinite(info.VelocityScale, value => renderer.velocityScale = value);
                 SetFinite(info.LengthScale, value => renderer.lengthScale = value);
                 SetFinite(info.SortingFudge, value => renderer.sortingFudge = value);
-                SetFinite(info.NormalDirection, value => renderer.normalDirection = value);
+                SetNormalizedRendererValue(info.NormalDirection, value => renderer.normalDirection = value, allowZero: true);
                 SetFinite(info.ShadowBias, value => renderer.shadowBias = value);
                 if (info.RenderAlignment >= 0 && info.RenderAlignment <= (int)ParticleSystemRenderSpace.World)
                     renderer.alignment = (ParticleSystemRenderSpace)info.RenderAlignment;
-                renderer.pivot = info.Pivot.ToVector3();
-                renderer.flip = info.Flip.ToVector3();
+                renderer.pivot = SanitizeRendererVector(info.Pivot.ToVector3());
+                renderer.flip = SanitizeRendererVector(info.Flip.ToVector3());
+                if (info.UseCustomVertexStreams && info.VertexStreams != null && info.VertexStreams.Length > 0)
+                {
+                    var streams = info.VertexStreams
+                        .Where(value => Enum.IsDefined(typeof(ParticleSystemVertexStream), value))
+                        .Select(value => (ParticleSystemVertexStream)value)
+                        .ToList();
+                    if (streams.Count > 0)
+                        renderer.SetActiveVertexStreams(streams);
+                }
                 renderer.enableGPUInstancing = info.EnableGPUInstancing;
                 renderer.allowRoll = info.AllowRoll;
                 var serialized = new SerializedObject(renderer);
@@ -331,17 +426,43 @@ namespace SrEffectPrefabTools
             EnsureAssetFolder(textureFolder);
             EnsureAssetFolder(materialFolder);
 
-            var shaderPath = $"{shaderFolder}/SR_ReconstructedParticle.shader";
-            File.WriteAllText(ToAbsolutePath(shaderPath), ReconstructedParticleShader);
-            AssetDatabase.ImportAsset(shaderPath, ImportAssetOptions.ForceSynchronousImport);
-            var shader = AssetDatabase.LoadAssetAtPath<Shader>(shaderPath) ?? Shader.Find("Particles/Standard Unlit");
-            if (shader == null)
-                throw new InvalidOperationException("Failed to create the reconstructed SR particle shader.");
+            // A texture can be shared by several material slots. Resolve its import
+            // color-space policy before importing it, instead of letting the first
+            // slot encountered decide. Main textures are color data; mask/noise/
+            // dissolve slots are scalar data unless the same texture is also used
+            // as a main texture.
+            var textureUsesColorSpace = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (var info in manifest.Materials)
+            {
+                foreach (var property in info.Textures ?? Array.Empty<TextureProperty>())
+                {
+                    if (string.IsNullOrEmpty(property.PackageEntry))
+                        continue;
+                    var isColorTexture = string.Equals(property.Name, "_MainTex", StringComparison.OrdinalIgnoreCase);
+                    if (textureUsesColorSpace.TryGetValue(property.PackageEntry, out var existing))
+                        textureUsesColorSpace[property.PackageEntry] = existing || isColorTexture;
+                    else
+                        textureUsesColorSpace[property.PackageEntry] = isColorTexture;
+                }
+            }
+
+            var shaderByFamily = new Dictionary<ShaderFamily, Shader>();
+            foreach (var family in manifest.Materials.Select(ClassifyShaderFamily).Distinct())
+            {
+                var shaderPath = $"{shaderFolder}/SR_{family}.shader";
+                File.WriteAllText(ToAbsolutePath(shaderPath), BuildShaderSource(family));
+                AssetDatabase.ImportAsset(shaderPath, ImportAssetOptions.ForceSynchronousImport);
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>(shaderPath);
+                if (shader == null)
+                    throw new InvalidOperationException($"Failed to create reconstructed SR shader family '{family}'.");
+                shaderByFamily[family] = shader;
+            }
 
             var textures = new Dictionary<string, Texture2D>(StringComparer.OrdinalIgnoreCase);
             foreach (var info in manifest.Materials)
             {
-                var material = new Material(shader) { name = info.Name, enableInstancing = info.EnableInstancing };
+                var family = ClassifyShaderFamily(info);
+                var material = new Material(shaderByFamily[family]) { name = info.Name, enableInstancing = info.EnableInstancing };
                 if (info.RenderQueue >= 0)
                     material.renderQueue = info.RenderQueue;
                 foreach (var property in info.Floats ?? Array.Empty<FloatProperty>())
@@ -359,6 +480,14 @@ namespace SrEffectPrefabTools
                         var texturePath = $"{textureFolder}/{SanitizeFileName(Path.GetFileName(property.PackageEntry))}";
                         File.WriteAllBytes(ToAbsolutePath(texturePath), source.ReadBytes(property.PackageEntry));
                         AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceSynchronousImport);
+                        if (AssetImporter.GetAtPath(texturePath) is TextureImporter importer)
+                        {
+                            importer.sRGBTexture = textureUsesColorSpace.TryGetValue(property.PackageEntry, out var useColorSpace) && useColorSpace;
+                            importer.wrapMode = TextureWrapMode.Repeat;
+                            importer.filterMode = FilterMode.Bilinear;
+                            importer.mipmapEnabled = true;
+                            importer.SaveAndReimport();
+                        }
                         texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
                         textures[property.PackageEntry] = texture;
                     }
@@ -375,6 +504,116 @@ namespace SrEffectPrefabTools
             }
             AssetDatabase.SaveAssets();
             return result;
+        }
+
+        private enum ShaderFamily
+        {
+            Generic,
+            OneChannel,
+            UvMove,
+            DissolveSwirl,
+            Decal
+        }
+
+        private static ShaderFamily ClassifyShaderFamily(ManifestMaterial info)
+        {
+            if (info == null)
+                return ShaderFamily.Generic;
+
+            // Decal properties own the clip/mask path. Keep this ahead of the
+            // UV and CL checks because decal materials also carry those flags.
+            if (HasFloat(info, "_DecalClip") || HasFloat(info, "_DECALMASK") ||
+                HasFloat(info, "_DECALNOISE") || HasFloat(info, "_TurnOnAnnularUV") ||
+                HasFloat(info, "_IsPerParticle"))
+                return ShaderFamily.Decal;
+
+            if (HasTexture(info, "_DisTex") || HasFloat(info, "_DisTexG") ||
+                HasFloat(info, "_Mid") || HasFloat(info, "_EnableClip") ||
+                HasVector(info, "_DisGSpeed") || HasVector(info, "_DisRSpeed") ||
+                HasColor(info, "_InsideColor") || HasColor(info, "_OutSideColor"))
+                return ShaderFamily.DissolveSwirl;
+
+            if (HasVector(info, "_MainSpeed") || HasVector(info, "_MaskSpeed") ||
+                HasVector(info, "_NoiseSpeed") || HasVector(info, "_CustomUV") ||
+                (info.Name?.IndexOf("UVMove", StringComparison.OrdinalIgnoreCase) >= 0))
+                return ShaderFamily.UvMove;
+
+            if (HasFloat(info, "_CL") || HasVector(info, "_MainChannel") ||
+                (info.Name?.IndexOf("OneChannel", StringComparison.OrdinalIgnoreCase) >= 0))
+                return ShaderFamily.OneChannel;
+
+            return ShaderFamily.Generic;
+        }
+
+        private static bool HasFloat(ManifestMaterial info, string name)
+        {
+            return (info.Floats ?? Array.Empty<FloatProperty>())
+                .Any(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                                 Math.Abs(property.Value) > 0.000001f);
+        }
+
+        private static bool HasVector(ManifestMaterial info, string name)
+        {
+            return (info.Colors ?? Array.Empty<ColorProperty>())
+                .Any(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                                 (Math.Abs(property.Value.r) > 0.000001f ||
+                                  Math.Abs(property.Value.g) > 0.000001f ||
+                                  Math.Abs(property.Value.b) > 0.000001f ||
+                                  Math.Abs(property.Value.a) > 0.000001f));
+        }
+
+        private static bool HasColor(ManifestMaterial info, string name)
+        {
+            return HasVector(info, name);
+        }
+
+        private static bool HasTexture(ManifestMaterial info, string name)
+        {
+            return (info.Textures ?? Array.Empty<TextureProperty>())
+                .Any(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                                 !string.IsNullOrEmpty(property.PackageEntry));
+        }
+
+        private static string BuildShaderSource(ShaderFamily family)
+        {
+            var source = ReconstructedParticleShader.Replace(
+                "Shader \"SR/Reconstructed Particle\"",
+                $"Shader \"SR/Reconstructed Particle/{family}\"");
+
+            if (family == ShaderFamily.OneChannel)
+            {
+                // SR declares _CL as KeywordEnum(RGBA, R, RA), not a boolean.
+                // The original OneChannel shader defaults are _MainChannel=(1,0,0,1)
+                // and _MainChannelRGB=(1,0,0,0). Preserve them when a material omits
+                // either property.
+                source = source.Replace(
+                    "_MainChannel (\"Main Channel\", Vector) = (1,0,0,0)",
+                    "_MainChannel (\"Main Channel\", Vector) = (1,0,0,1)");
+                source = source.Replace(
+                    "_MainChannelRGB (\"Main Channel RGB\", Vector) = (1,1,1,0)",
+                    "_MainChannelRGB (\"Main Channel RGB\", Vector) = (1,0,0,0)");
+            }
+
+            if (family == ShaderFamily.DissolveSwirl)
+            {
+                // The dissolve family carries a two-point transition in
+                // _SmoothStep. The shared shader only used .x, which made the
+                // second edge value inert and produced a hard clip.
+                source = source.Replace(
+                    "if (_EnableClip > 0.5) clip(saturate(dissolve + noise * _SmoothStep.x) - _Mid);",
+                    "float dissolveControl = dissolve + noise * _SmoothStep.x;\n                float dissolveEdge = smoothstep(_SmoothStep.x, max(_SmoothStep.y, _SmoothStep.x + 0.0001), dissolveControl);\n                if (_EnableClip > 0.5) clip(dissolveEdge - _Mid);");
+            }
+
+            if (family == ShaderFamily.Decal)
+            {
+                // Decal materials use the mask texture as the clip source;
+                // _DecalClip was previously only serialized, not consumed.
+                source = source.Replace(
+                    "if (_EnableClip > 0.5) clip(saturate(dissolve + noise * _SmoothStep.x) - _Mid);",
+                    "if (_EnableClip > 0.5)\n                {\n                    float decalClipValue = dot(maskSample, _MaskChannel);\n                    clip(decalClipValue - _DecalClip);\n                }");
+            }
+
+            return source;
         }
 
         private static Material FindMaterial(Dictionary<string, Material> materials, PointerInfo pointer)
@@ -406,7 +645,7 @@ namespace SrEffectPrefabTools
             var components = node.Components ?? Array.Empty<ManifestComponent>();
             if (components.Any(component => component.Type == "ParticleSystem" || component.Type == "ParticleSystemRenderer"))
                 componentTypes.Add(typeof(ParticleSystem));
-            if (components.Any(component => component.Type == "Animator"))
+            if (components.Any(component => component.Type == "Animator" && component.ParametersStatus != "not-required"))
                 componentTypes.Add(typeof(Animator));
             if (components.Any(component => component.Type == "Light"))
                 componentTypes.Add(typeof(Light));
@@ -477,6 +716,144 @@ namespace SrEffectPrefabTools
                 main.scalingMode = (ParticleSystemScalingMode)data.ScalingMode;
             if (data.RandomSeed != 0)
                 particleSystem.randomSeed = data.RandomSeed;
+            if (data.StartColor != null)
+            {
+                main.startColor = data.StartColor.ToMinMaxGradient();
+            }
+            else
+            {
+                // SR4.4's partial ParticleSystem type tree omits StartColor on
+                // some effects. Unity can then retain its native zero color,
+                // producing particles with RGBA(0,0,0,0) even though the
+                // particle count and renderer are valid.
+                main.startColor = new ParticleSystem.MinMaxGradient(Color.white);
+                var colorSerialized = new SerializedObject(particleSystem);
+                SetInteger(colorSerialized, "InitialModule.startColor.minMaxState", 0);
+                SetColor(colorSerialized, "InitialModule.startColor.minColor", Color.white);
+                SetColor(colorSerialized, "InitialModule.startColor.maxColor", Color.white);
+                colorSerialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (data.StartSize != null)
+                main.startSize = data.StartSize.ToMinMaxCurve();
+            else
+                // The partial SR type tree does not expose StartSize. A zero
+                // default is not renderable, so retain Unity's normal particle
+                // size instead of serializing an invisible system.
+                main.startSize = new ParticleSystem.MinMaxCurve(1f);
+            if (!main.startSize3D &&
+                main.startSize.mode == ParticleSystemCurveMode.Constant &&
+                main.startSize.constant <= 0f)
+            {
+                // Re-assert the serialized curve as well. Unity can preserve
+                // the zero scalar from the partially decoded native block when
+                // the public MainModule value is assigned during reconstruction.
+                var sizeSerialized = new SerializedObject(particleSystem);
+                SetInteger(sizeSerialized, "InitialModule.startSize.minMaxState", 0);
+                SetFloat(sizeSerialized, "InitialModule.startSize.scalar", 1f);
+                SetFloat(sizeSerialized, "InitialModule.startSize.minScalar", 1f);
+                sizeSerialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (data.Size3D)
+            {
+                main.startSize3D = true;
+                // SR4.4 serializes the X axis under StartSize. When Size3D is
+                // enabled Unity no longer uses the legacy startSize field.
+                // Leaving X untouched makes Unity retain its native 0..1
+                // default, which changes the particle footprint.
+                var startSizeX = data.StartSizeX ?? data.StartSize;
+                if (startSizeX != null)
+                    main.startSizeX = startSizeX.ToMinMaxCurve();
+                if (data.StartSizeY != null)
+                    main.startSizeY = data.StartSizeY.ToMinMaxCurve();
+                if (data.StartSizeZ != null)
+                    main.startSizeZ = data.StartSizeZ.ToMinMaxCurve();
+            }
+
+            // Re-apply the SR curve values after the public MainModule setters
+            // so they survive prefab save. State 3 is Unity's TwoConstants.
+            var sizeAxesSerialized = new SerializedObject(particleSystem);
+            if (data.StartSize != null)
+                SetMinMaxCurve(sizeAxesSerialized, "InitialModule.startSize", data.StartSize);
+            if (data.Size3D)
+            {
+                if (data.StartSizeY != null)
+                    SetMinMaxCurve(sizeAxesSerialized, "InitialModule.startSizeY", data.StartSizeY);
+                if (data.StartSizeZ != null)
+                    SetMinMaxCurve(sizeAxesSerialized, "InitialModule.startSizeZ", data.StartSizeZ);
+            }
+            sizeAxesSerialized.ApplyModifiedPropertiesWithoutUndo();
+            if (data.MaxNumParticles > 0)
+                main.maxParticles = data.MaxNumParticles;
+            if (data.GravityModifier != null)
+                main.gravityModifier = data.GravityModifier.ToMinMaxCurve();
+            if (data.ColorOverLifetime != null)
+            {
+                var colorOverLifetime = particleSystem.colorOverLifetime;
+                // SR4.4's partial particle data can preserve the gradient while
+                // losing the module-enabled bit. If the stored alpha curve is
+                // genuinely non-constant, disabling the module makes the
+                // reconstructed particle remain opaque for its whole lifetime.
+                colorOverLifetime.enabled = data.ColorOverLifetimeEnabled ||
+                                             HasAnimatedAlpha(data.ColorOverLifetime);
+                colorOverLifetime.color = data.ColorOverLifetime.ToMinMaxGradient();
+            }
+        }
+
+        private static bool HasAnimatedAlpha(MinMaxGradientData data)
+        {
+            if (data == null)
+                return false;
+
+            return HasAnimatedAlpha(data.MinGradient) || HasAnimatedAlpha(data.MaxGradient);
+        }
+
+        private static bool HasAnimatedAlpha(GradientData data)
+        {
+            var keys = data?.AlphaKeys;
+            if (keys == null || keys.Length < 2)
+                return false;
+
+            var first = Mathf.Clamp01(keys[0].Alpha);
+            return keys.Any(key => Mathf.Abs(Mathf.Clamp01(key.Alpha) - first) > 0.0001f);
+        }
+
+        private static void ApplySerializedColorLifetimeFallback(ParticleSystem particleSystem, string json)
+        {
+            var root = JObject.Parse(json);
+            if (root.Value<bool>("ColorOverLifetimeEnabled"))
+                return;
+
+            var alphaKeys = root["ColorOverLifetime"]?["MaxGradient"]?["AlphaKeys"] as JArray;
+            if (alphaKeys == null || alphaKeys.Count < 2)
+                return;
+
+            var first = alphaKeys[0]["Alpha"].Value<float>();
+            var hasAnimatedAlpha = alphaKeys
+                .Skip(1)
+                .Any(key => Mathf.Abs(Mathf.Clamp01(key["Alpha"].Value<float>()) - Mathf.Clamp01(first)) > 0.0001f);
+            if (hasAnimatedAlpha)
+            {
+                var colorOverLifetime = particleSystem.colorOverLifetime;
+                colorOverLifetime.enabled = true;
+            }
+        }
+
+        private static void EnsureParticleSystemDefaults(ParticleSystem particleSystem)
+        {
+            var main = particleSystem.main;
+            if (main.startColor.color.a <= 0.001f)
+            {
+                // External SR4.4 type-tree application can leave the native
+                // start color at RGBA(0,0,0,0). Keep the particle renderable
+                // until a decoded color module is available.
+                main.startColor = new ParticleSystem.MinMaxGradient(Color.white);
+                var colorSerialized = new SerializedObject(particleSystem);
+                SetInteger(colorSerialized, "InitialModule.startColor.minMaxState", 0);
+                SetColor(colorSerialized, "InitialModule.startColor.minColor", Color.white);
+                SetColor(colorSerialized, "InitialModule.startColor.maxColor", Color.white);
+                colorSerialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+
         }
 
         private static void SetMinMaxCurve(SerializedObject target, string path, MinMaxCurveData curve)
@@ -492,6 +869,12 @@ namespace SrEffectPrefabTools
         {
             if (IsFinite(value) && target.FindProperty(name) is { } property)
                 property.floatValue = value;
+        }
+
+        private static void SetColor(SerializedObject target, string name, Color value)
+        {
+            if (target.FindProperty(name) is { } property)
+                property.colorValue = value;
         }
 
         private static void SetInteger(SerializedObject target, string name, int value)
@@ -516,6 +899,22 @@ namespace SrEffectPrefabTools
         {
             if (IsFinite(value))
                 setter(value);
+        }
+
+        private static void SetNormalizedRendererValue(float value, Action<float> setter, bool allowZero)
+        {
+            if (IsFinite(value) && value >= 0f && value <= 1f && (allowZero || value > 0f))
+                setter(value);
+        }
+
+        private static Vector3 SanitizeRendererVector(Vector3 value)
+        {
+            if (!IsFinite(value.x) || !IsFinite(value.y) || !IsFinite(value.z) || value.sqrMagnitude > 100f)
+                return Vector3.zero;
+            return new Vector3(
+                Mathf.Abs(value.x) < 0.0001f ? 0f : value.x,
+                Mathf.Abs(value.y) < 0.0001f ? 0f : value.y,
+                Mathf.Abs(value.z) < 0.0001f ? 0f : value.z);
         }
 
         private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
@@ -596,6 +995,7 @@ namespace SrEffectPrefabTools
             public float CameraVelocityScale; public float VelocityScale; public float LengthScale; public float SortingFudge;
             public float NormalDirection; public float ShadowBias; public int RenderAlignment;
             public Vector3Data Pivot; public Vector3Data Flip;
+            public bool UseCustomVertexStreams; public int[] VertexStreams;
             public bool EnableGPUInstancing; public bool ApplyActiveColorSpace; public bool AllowRoll;
             public PointerInfo[] MaterialPointers;
             public PointerInfo[] MeshPointers;
@@ -719,6 +1119,17 @@ namespace SrEffectPrefabTools
             public int ScalingMode;
             public uint RandomSeed;
             public InitialModuleData InitialModule;
+            public MinMaxGradientData StartColor;
+            public bool ColorOverLifetimeEnabled;
+            public MinMaxGradientData ColorOverLifetime;
+            public MinMaxCurveData StartSize;
+            public MinMaxCurveData StartSizeX;
+            public MinMaxCurveData StartSizeY;
+            public MinMaxCurveData StartSizeZ;
+            public bool Size3D;
+            public bool Rotation3D;
+            public int MaxNumParticles;
+            public MinMaxCurveData GravityModifier;
         }
 
         [Serializable]
@@ -732,6 +1143,80 @@ namespace SrEffectPrefabTools
         }
 
         [Serializable]
+        private sealed class MinMaxGradientData
+        {
+            public int MinMaxState;
+            public ColorData MinColor;
+            public ColorData MaxColor;
+            public GradientData MinGradient;
+            public GradientData MaxGradient;
+
+            public ParticleSystem.MinMaxGradient ToMinMaxGradient()
+            {
+                return MinMaxState switch
+                {
+                    1 when MaxGradient != null => new ParticleSystem.MinMaxGradient(MaxGradient.ToGradient()),
+                    3 when MinGradient != null && MaxGradient != null => new ParticleSystem.MinMaxGradient(MinGradient.ToGradient(), MaxGradient.ToGradient()),
+                    2 => new ParticleSystem.MinMaxGradient(MinColor.ToColor(), MaxColor.ToColor()),
+                    _ => new ParticleSystem.MinMaxGradient(MinColor.ToColor()),
+                };
+            }
+        }
+
+        [Serializable]
+        private sealed class GradientData
+        {
+            public int Mode;
+            public GradientColorKeyData[] ColorKeys;
+            public GradientAlphaKeyData[] AlphaKeys;
+
+            public Gradient ToGradient()
+            {
+                var gradient = new Gradient();
+                var colors = (ColorKeys ?? Array.Empty<GradientColorKeyData>())
+                    .Select(key => key.ToColorKey())
+                    .ToArray();
+                var alphas = (AlphaKeys ?? Array.Empty<GradientAlphaKeyData>())
+                    .Select(key => key.ToAlphaKey())
+                    .ToArray();
+                if (colors.Length < 2)
+                    colors = new[]
+                    {
+                        new GradientColorKey(UnityEngine.Color.white, 0f),
+                        new GradientColorKey(UnityEngine.Color.white, 1f),
+                    };
+                if (alphas.Length < 2)
+                    alphas = new[]
+                    {
+                        new GradientAlphaKey(1f, 0f),
+                        new GradientAlphaKey(1f, 1f),
+                    };
+                gradient.SetKeys(colors, alphas);
+                if (Enum.IsDefined(typeof(GradientMode), Mode))
+                    gradient.mode = (GradientMode)Mode;
+                return gradient;
+            }
+        }
+
+        [Serializable]
+        private sealed class GradientColorKeyData
+        {
+            public ColorData Color;
+            public float Time;
+
+            public GradientColorKey ToColorKey() => new GradientColorKey(Color.ToColor(), Mathf.Clamp01(Time));
+        }
+
+        [Serializable]
+        private sealed class GradientAlphaKeyData
+        {
+            public float Alpha;
+            public float Time;
+
+            public GradientAlphaKey ToAlphaKey() => new GradientAlphaKey(Mathf.Clamp01(Alpha), Mathf.Clamp01(Time));
+        }
+
+        [Serializable]
         private sealed class MinMaxCurveData
         {
             public int MinMaxState;
@@ -742,6 +1227,15 @@ namespace SrEffectPrefabTools
 
             public ParticleSystem.MinMaxCurve ToMinMaxCurve()
             {
+                // SR4.4's partial schema uses state 3 for two constants when
+                // both curve payloads are empty. Unity's enum uses state 3 for
+                // two curves, so passing it through unchanged corrupts values
+                // such as star (1)'s lifetime 0.4..0.9 and size 0.15..0.33.
+                if (MinMaxState == 3 &&
+                    (MaxCurve?.Keys == null || MaxCurve.Keys.Length == 0) &&
+                    (MinCurve?.Keys == null || MinCurve.Keys.Length == 0))
+                    return new ParticleSystem.MinMaxCurve(MinScalar, Scalar);
+
                 return (ParticleSystemCurveMode)MinMaxState switch
                 {
                     ParticleSystemCurveMode.Curve => new ParticleSystem.MinMaxCurve(Scalar, MaxCurve?.ToAnimationCurve()),
@@ -869,6 +1363,10 @@ namespace SrEffectPrefabTools
         _NoiseTex (""Noise Texture"", 2D) = ""gray"" {}
         _DisTex (""Dissolve Texture"", 2D) = ""white"" {}
         _MainColor (""Main Color"", Color) = (1,1,1,1)
+        _Opacity (""Opacity"", Range(0,1)) = 1
+        _IgnoreMainTexAlpha (""Ignore MainTex Alpha"", Float) = 0
+        _VertexColor (""Vertex Color"", Float) = 1
+        _VertexColorFallback (""Vertex Color Fallback"", Color) = (1,1,1,1)
         _InsideColor (""Inside Color"", Color) = (1,1,1,1)
         _OutSideColor (""Outside Color"", Color) = (1,1,1,1)
         _MainColorScale (""Main Color Scale"", Float) = 1
@@ -924,34 +1422,91 @@ namespace SrEffectPrefabTools
         Pass
         {
             Name ""SRReconstructedParticle""
-            Tags { ""LightMode""=""SRPDefaultUnlit"" }
+            Tags { ""LightMode""=""UniversalForward"" }
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #include ""UnityCG.cginc""
-            struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; fixed4 color : COLOR; };
-            struct v2f { float4 position : SV_POSITION; float2 uv : TEXCOORD0; fixed4 color : COLOR; };
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+                fixed4 color : COLOR;
+                float4 custom0 : TEXCOORD1;
+                float4 custom1 : TEXCOORD2;
+                float3 custom2 : TEXCOORD3;
+            };
+            struct v2f
+            {
+                float4 position : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                fixed4 color : COLOR;
+                float4 custom0 : TEXCOORD1;
+                float4 custom1 : TEXCOORD2;
+                float3 custom2 : TEXCOORD3;
+            };
             sampler2D _MainTex, _MaskTex, _NoiseTex, _DisTex;
-            float4 _MainTex_ST, _MainColor, _MainSpeed, _MaskSpeed, _NoiseSpeed, _SmoothStep;
-            float _MainColorScale, _EmissionIntensity, _Mid, _EnableClip;
+            float4 _MainTex_ST, _MaskTex_ST, _NoiseTex_ST, _DisTex_ST;
+            float4 _MainColor, _VertexColorFallback, _InsideColor, _OutSideColor;
+            float4 _MainSpeed, _MaskSpeed, _NoiseSpeed, _NoiseSpeed2, _NoiseSpeedG;
+            float4 _DisGSpeed, _DisRSpeed, _DisStep, _CustomUV, _MainChannel, _MainChannelRGB;
+            float4 _MaskChannel, _MaskUVoffset, _SmoothStep;
+            float _MainColorScale, _EmissionIntensity, _Opacity, _IgnoreMainTexAlpha, _VertexColor, _MaskON, _NoiseSwitch, _Saturate;
+            float _DisTexG, _IsPerParticle, _CL, _Mid, _EnableClip, _DecalClip;
             v2f vert(appdata input)
             {
                 v2f output;
                 output.position = UnityObjectToClipPos(input.vertex);
-                output.uv = TRANSFORM_TEX(input.uv, _MainTex);
+                // Keep the interpolated coordinate in the mesh's original UV space.
+                // Each texture must apply its own ST transform in the fragment stage;
+                // applying _MainTex_ST here would make the mask/noise/dissolve scales
+                // inherit the main texture's scale and offset as well.
+                output.uv = input.uv;
                 output.color = input.color;
+                output.custom0 = input.custom0;
+                output.custom1 = input.custom1;
+                output.custom2 = input.custom2;
                 return output;
             }
             fixed4 frag(v2f input) : SV_Target
             {
-                float2 mainUv = input.uv + _MainSpeed.xy * _Time.y;
-                fixed4 main = tex2D(_MainTex, mainUv);
-                fixed mask = tex2D(_MaskTex, input.uv + _MaskSpeed.xy * _Time.y).r;
-                fixed noise = tex2D(_NoiseTex, input.uv + _NoiseSpeed.xy * _Time.y).r;
-                fixed dissolve = tex2D(_DisTex, input.uv).r;
-                fixed4 color = main * input.color * _MainColor * max(_MainColorScale * _EmissionIntensity, 0.0001);
+                float2 mainUv = TRANSFORM_TEX(input.uv, _MainTex) + _MainSpeed.xy * _Time.y;
+                float2 maskUv = TRANSFORM_TEX(input.uv, _MaskTex) + _MaskUVoffset.xy + _MaskSpeed.xy * _Time.y;
+                float2 noiseUv = TRANSFORM_TEX(input.uv, _NoiseTex) + _NoiseSpeed.xy * _Time.y;
+                float2 dissolveUv = TRANSFORM_TEX(input.uv, _DisTex);
+                fixed4 mainSample = tex2D(_MainTex, mainUv);
+                fixed4 maskSample = tex2D(_MaskTex, maskUv);
+                fixed4 noiseSample = tex2D(_NoiseTex, noiseUv);
+                fixed4 dissolveSample = tex2D(_DisTex, dissolveUv);
+
+                // _CL is SR's Channel Mapping enum: RGBA=0, R=1, RA=2.
+                // It is shared by the particle shader families, so keep the
+                // mapping in the common fragment path instead of one family branch.
+                float channelMode = clamp(round(_CL), 0.0, 2.0);
+                float useChannel = step(0.5, channelMode);
+                float isRedOnly = useChannel * (1.0 - step(1.5, channelMode));
+                float mainChannel = dot(mainSample, _MainChannel);
+                float3 mainRgb = lerp(mainSample.rgb, mainChannel.xxx, useChannel);
+                float hasRgbRemap = step(0.001, dot(abs(_MainChannelRGB.rgb), 1.0.xxx));
+                float3 rgbRemap = lerp(1.0.xxx, _MainChannelRGB.rgb, hasRgbRemap);
+                mainRgb *= lerp(1.0.xxx, rgbRemap, useChannel);
+                float mask = dot(maskSample, _MaskChannel);
+                mask = lerp(1.0, mask, step(0.5, _MaskON));
+                float noise = dot(noiseSample, _MaskChannel);
+                noise = lerp(1.0, noise, step(0.5, _NoiseSwitch));
+                float dissolveR = dissolveSample.r + _DisRSpeed.x * _Time.y;
+                float dissolveG = dissolveSample.g + _DisGSpeed.x * _Time.y;
+                float dissolve = lerp(dissolveR, dissolveG, step(0.5, _DisTexG));
+                float particleScale = lerp(1.0, max(input.custom0.x, 0.0), step(0.5, _IsPerParticle));
+                float channelAlpha = lerp(mainSample.a, 1.0, isRedOnly);
+                float mainAlpha = lerp(channelAlpha, 1.0, step(0.5, _IgnoreMainTexAlpha));
+                fixed4 vertexColor = lerp(_VertexColorFallback, input.color, step(0.5, _VertexColor));
+                fixed4 color = fixed4(mainRgb, mainAlpha) * vertexColor * _MainColor;
+                color.a *= _Opacity;
+                if (_Saturate > 0.5) color.rgb = saturate(color.rgb);
+                color.rgb *= particleScale * max(_MainColorScale * _EmissionIntensity, 0.0001);
                 color.a *= mask;
-                if (_EnableClip > 0.5) clip(dissolve + noise * _SmoothStep.x - _Mid);
+                if (_EnableClip > 0.5) clip(saturate(dissolve + noise * _SmoothStep.x) - _Mid);
                 return color;
             }
             ENDHLSL
