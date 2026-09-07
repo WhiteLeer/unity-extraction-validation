@@ -1,12 +1,8 @@
 {
-    "name": "UnityExtractionValidation.Editor",
-    "rootNamespace": "UnityExtractionValidation",
-    "references": [
-        "SrRuntimeEffectTools"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "name": "SrRuntimeEffectTools",
+    "rootNamespace": "SrRuntimeEffectTools",
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

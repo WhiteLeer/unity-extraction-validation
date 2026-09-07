@@ -232,9 +232,10 @@ internal sealed class SrAnimationPreviewWindow : EditorWindow
         previewInstance.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
         instantiatedAsset = modelAsset;
 
-        previewAnimator = previewInstance.GetComponentInChildren<Animator>(true);
-        if (previewAnimator != null)
-            previewAnimator.enabled = false;
+        var animators = previewInstance.GetComponentsInChildren<Animator>(true);
+        previewAnimator = animators.FirstOrDefault();
+        foreach (var animator in animators)
+            animator.enabled = false;
 
         Selection.activeGameObject = previewInstance;
         SceneView.lastActiveSceneView?.FrameSelected();

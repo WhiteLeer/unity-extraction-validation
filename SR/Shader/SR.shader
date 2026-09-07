@@ -161,11 +161,10 @@ Shader "SR"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" }
+        Tags { "RenderType"="Opaque"}
         Pass
         {
             Name "UniversalForward"
-            Tags { "LightMode"="UniversalForward" }
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -178,27 +177,6 @@ Shader "SR"
             CBUFFER_END
             Varyings vert(Attributes input) { Varyings o; o.positionHCS=TransformObjectToHClip(input.positionOS.xyz); o.uv=TRANSFORM_TEX(input.uv,_MainTex); return o; }
             half4 frag(Varyings input) : SV_Target { return SAMPLE_TEXTURE2D(_MainTex,sampler_MainTex,input.uv) * _Color; }
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "DepthOnly"
-            Tags
-            {
-                "LightMode" = "DepthOnly"
-            }
-            ZWrite On
-            ColorMask R
-            HLSLPROGRAM
-            #pragma target 2.0
-            #pragma vertex DepthOnlyVertex
-            #pragma fragment DepthOnlyFragment
-            #pragma shader_feature_local _ALPHATEST_ON
-            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
-            #pragma multi_compile_instancing
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
-            #include "Assets/unity-shadertoy-validation/Common/Shaders/ShadertoyDepthOnlyPass.hlsl"
             ENDHLSL
         }
     }

@@ -29,6 +29,7 @@ public static class SrCharacterPreviewBuilder
         var characterPath = GetArgument(args, "--sr-character-model");
         var weaponPath = TryGetArgument(args, "--sr-weapon-rig");
         var animationPath = GetArgument(args, "--sr-animation");
+        var animationFolderPath = TryGetArgument(args, "--sr-animation-folder");
         var outputRoot = GetArgument(args, "--sr-output-root");
         var previewName = GetArgument(args, "--sr-preview-name");
 
@@ -39,7 +40,10 @@ public static class SrCharacterPreviewBuilder
         if (character == null || animation == null)
             throw new FileNotFoundException("SR preview command inputs were not imported.");
 
-        Build(character, weapon, animation, outputRoot, previewName);
+        var animations = string.IsNullOrEmpty(animationFolderPath)
+            ? new[] { animation }
+            : FindAnimationClips(animationFolderPath, animation);
+        Build(character, weapon, animations, outputRoot, previewName);
         EditorApplication.Exit(0);
     }
 
@@ -77,6 +81,82 @@ public static class SrCharacterPreviewBuilder
         EditorApplication.Exit(0);
     }
 
+    public static void ValidatePreviewFromCommandLine()
+    {
+        var args = Environment.GetCommandLineArgs();
+        var prefabPath = GetArgument(args, "--sr-preview-prefab");
+        var animationPath = GetArgument(args, "--sr-validation-animation");
+        var reportPath = GetArgument(args, "--sr-validation-report");
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(animationPath);
+        if (prefab == null || clip == null)
+            throw new FileNotFoundException("SR preview validation inputs were not imported.");
+
+        var instance = Object.Instantiate(prefab);
+        var animator = instance.GetComponentInChildren<Animator>(true);
+        var weapon = instance.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+            .FirstOrDefault(IsWeaponRenderer);
+        var curvePaths = AnimationUtility.GetCurveBindings(clip)
+            .Where(binding => binding.type == typeof(Transform))
+            .Select(binding => binding.path)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var targets = curvePaths
+            .Select(path => new
+            {
+                Path = path,
+                Transform = string.IsNullOrEmpty(path) ? instance.transform : instance.transform.Find(path)
+            })
+            .Where(item => item.Transform != null)
+            .ToArray();
+        var lines = new List<string>
+        {
+            "Prefab: " + prefabPath,
+            "Clip: " + clip.name + " length=" + clip.length.ToString("R"),
+            "Animator: " + (animator == null ? "<none>" : "present"),
+            "Avatar: " + (animator == null || animator.avatar == null ? "<none>" : animator.avatar.name + " valid=" + animator.avatar.isValid),
+            "TransformCurvePaths: " + curvePaths.Length,
+            "ResolvedTransformCurvePaths: " + targets.Length,
+            "WeaponRenderer: " + (weapon == null ? "<none>" : weapon.name + " mesh=" + (weapon.sharedMesh == null ? "<none>" : weapon.sharedMesh.name) + " bounds=" + FormatBounds(weapon.localBounds))
+        };
+
+        if (animator != null && targets.Length > 0)
+        {
+            var animatorStart = targets.ToDictionary(item => item.Path, item => item.Transform.localRotation, StringComparer.Ordinal);
+            animator.Rebind();
+            animator.Play(clip.name, 0, 0f);
+            animator.Update(0.001f);
+            animator.Play(clip.name, 0, 0.5f);
+            animator.Update(0.001f);
+            var animatorChanged = targets
+                .Where(item => Quaternion.Angle(animatorStart[item.Path], item.Transform.localRotation) > 0.001f)
+                .Select(item => item.Path)
+                .ToArray();
+            lines.Add("AnimatorChangedPaths: " + animatorChanged.Length);
+            lines.Add("AnimatorChangedBodyPaths: " + animatorChanged.Count(path => !path.Contains("skirt", StringComparison.OrdinalIgnoreCase)));
+            lines.Add("AnimatorChangedSkirtPaths: " + animatorChanged.Count(path => path.Contains("skirt", StringComparison.OrdinalIgnoreCase)));
+
+            AnimationMode.StartAnimationMode();
+            AnimationMode.BeginSampling();
+            AnimationMode.SampleAnimationClip(instance, clip, clip.length * 0.5f);
+            AnimationMode.EndSampling();
+            AnimationMode.StopAnimationMode();
+            var sampledChanged = targets
+                .Where(item => Quaternion.Angle(animatorStart[item.Path], item.Transform.localRotation) > 0.001f)
+                .Select(item => item.Path)
+                .ToArray();
+            lines.Add("DirectSampleChangedPaths: " + sampledChanged.Length);
+            lines.Add("DirectSampleChangedBodyPaths: " + sampledChanged.Count(path => !path.Contains("skirt", StringComparison.OrdinalIgnoreCase)));
+            lines.Add("DirectSampleChangedSkirtPaths: " + sampledChanged.Count(path => path.Contains("skirt", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        File.WriteAllLines(reportPath, lines);
+        Object.DestroyImmediate(instance);
+        EditorApplication.Exit(0);
+    }
+
     public static void Build(
         GameObject characterAsset,
         GameObject weaponRigAsset,
@@ -84,7 +164,18 @@ public static class SrCharacterPreviewBuilder
         string outputRoot,
         string previewName)
     {
-        if (characterAsset == null || animationClip == null)
+        Build(characterAsset, weaponRigAsset, new[] { animationClip }, outputRoot, previewName);
+    }
+
+    public static void Build(
+        GameObject characterAsset,
+        GameObject weaponRigAsset,
+        IReadOnlyList<AnimationClip> animationClips,
+        string outputRoot,
+        string previewName)
+    {
+        if (characterAsset == null || animationClips == null || animationClips.Count == 0 ||
+            animationClips.Any(clip => clip == null))
             throw new ArgumentNullException("Preview inputs cannot be null.");
         if (string.IsNullOrWhiteSpace(outputRoot) || !outputRoot.StartsWith("Assets/", StringComparison.Ordinal))
             throw new ArgumentException("Preview output must be a Unity asset path under Assets/.", nameof(outputRoot));
@@ -100,6 +191,7 @@ public static class SrCharacterPreviewBuilder
         var prefabPath = outputRoot + "/Prefabs/" + previewName + ".prefab";
         var controllerPath = outputRoot + "/Controllers/" + previewName + ".controller";
         var meshPath = outputRoot + "/Generated/" + previewName + "_WeaponMesh.asset";
+        var avatarPath = outputRoot + "/Generated/" + previewName + "_GenericAvatar.asset";
         var scenePath = outputRoot + "/Scenes/" + previewName + ".unity";
 
         var root = Object.Instantiate(characterAsset);
@@ -107,6 +199,7 @@ public static class SrCharacterPreviewBuilder
         RemoveLegacyAnimation(root);
 
         var characterBones = BuildBoneMap(root);
+        var characterBonesByPath = BuildBonePathMap(root);
         var weaponSkin = weaponRigAsset == null ? FindWeaponSkin(root, false) : null;
         var sourceRig = weaponRigAsset != null ? Object.Instantiate(weaponRigAsset) : null;
         if (sourceRig != null)
@@ -116,20 +209,25 @@ public static class SrCharacterPreviewBuilder
             if (weaponSkin == null || weaponSkin.sharedMesh == null)
                 throw new InvalidDataException("The weapon FBX does not contain a SkinnedMeshRenderer with a mesh.");
 
-            var sourceRootBoneName = weaponSkin.rootBone != null ? weaponSkin.rootBone.name : null;
-            weaponSkin.transform.SetParent(root.transform, true);
+            var sourceLocalPosition = weaponSkin.transform.localPosition;
+            var sourceLocalRotation = weaponSkin.transform.localRotation;
+            var sourceLocalScale = weaponSkin.transform.localScale;
+            // Keep the renderer in the source prefab's coordinate space. The source
+            // mesh bindposes already describe the relationship to its weapon bones;
+            // parenting the renderer to the mount and rebuilding bindposes loses that
+            // coordinate space and makes the weapon drift during animation.
+            weaponSkin.transform.SetParent(root.transform, false);
+            weaponSkin.transform.localPosition = sourceLocalPosition;
+            weaponSkin.transform.localRotation = sourceLocalRotation;
+            weaponSkin.transform.localScale = sourceLocalScale;
             weaponSkin.gameObject.name = previewName + "_Weapon_Skinned";
-            var remappedBones = RemapBones(weaponSkin, characterBones);
+            var remappedBones = RemapBones(
+                weaponSkin,
+                sourceRig.transform,
+                characterBones,
+                characterBonesByPath);
             var remappedMesh = Object.Instantiate(weaponSkin.sharedMesh);
             remappedMesh.name = previewName + "_WeaponMesh";
-            var bindposes = new Matrix4x4[remappedBones.Length];
-            for (var i = 0; i < remappedBones.Length; i++)
-            {
-                if (remappedBones[i] == null)
-                    continue;
-                bindposes[i] = remappedBones[i].worldToLocalMatrix * weaponSkin.transform.localToWorldMatrix;
-            }
-            remappedMesh.bindposes = bindposes;
 
             DeleteAssetIfExists(meshPath);
             AssetDatabase.CreateAsset(remappedMesh, meshPath);
@@ -137,10 +235,21 @@ public static class SrCharacterPreviewBuilder
             remappedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
             weaponSkin.bones = remappedBones;
             weaponSkin.sharedMesh = remappedMesh;
-            if (!string.IsNullOrEmpty(sourceRootBoneName) && characterBones.TryGetValue(sourceRootBoneName, out var rootBone))
+            // The source renderer can carry a tiny runtime-calculated bounds box.
+            // Keep the weapon from being culled after it is moved into the preview.
+            weaponSkin.localBounds = remappedMesh.bounds;
+            weaponSkin.updateWhenOffscreen = true;
+            var sourceRootBone = weaponSkin.rootBone;
+            var rootBone = FindMatchingBone(
+                sourceRootBone,
+                sourceRig.transform,
+                characterBones,
+                characterBonesByPath);
+            if (rootBone != null)
                 weaponSkin.rootBone = rootBone;
             else
                 weaponSkin.rootBone = remappedBones.FirstOrDefault(bone => bone != null);
+
         }
         else if (weaponSkin != null)
         {
@@ -149,7 +258,8 @@ public static class SrCharacterPreviewBuilder
 
         if (sourceRig != null)
             Object.DestroyImmediate(sourceRig);
-        AddAnimator(root, controllerPath, animationClip);
+        AddAnimator(root, characterAsset, controllerPath, animationClips, avatarPath);
+        ValidateAnimationBindings(root, animationClips);
 
         DeleteAssetIfExists(prefabPath);
         var prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -182,16 +292,26 @@ public static class SrCharacterPreviewBuilder
 
     private static Dictionary<string, Transform> BuildBoneMap(GameObject root)
     {
-        var result = new Dictionary<string, Transform>(StringComparer.Ordinal);
-        foreach (var bone in root.GetComponentsInChildren<Transform>(true))
-        {
-            if (!result.ContainsKey(bone.name))
-                result.Add(bone.name, bone);
-        }
-        return result;
+        return root.GetComponentsInChildren<Transform>(true)
+            .GroupBy(bone => bone.name, StringComparer.Ordinal)
+            .Where(group => group.Count() == 1)
+            .ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
     }
 
-    private static Transform[] RemapBones(SkinnedMeshRenderer sourceSkin, Dictionary<string, Transform> characterBones)
+    private static Dictionary<string, Transform> BuildBonePathMap(GameObject root)
+    {
+        return root.GetComponentsInChildren<Transform>(true)
+            .ToDictionary(
+                bone => GetRelativeTransformPath(bone, root.transform),
+                bone => bone,
+                StringComparer.Ordinal);
+    }
+
+    private static Transform[] RemapBones(
+        SkinnedMeshRenderer sourceSkin,
+        Transform sourceRoot,
+        Dictionary<string, Transform> characterBones,
+        Dictionary<string, Transform> characterBonesByPath)
     {
         var remapped = new Transform[sourceSkin.bones.Length];
         for (var i = 0; i < sourceSkin.bones.Length; i++)
@@ -199,26 +319,139 @@ public static class SrCharacterPreviewBuilder
             var sourceBone = sourceSkin.bones[i];
             if (sourceBone == null)
                 continue;
-            if (!characterBones.TryGetValue(sourceBone.name, out remapped[i]))
+            remapped[i] = FindMatchingBone(
+                sourceBone,
+                sourceRoot,
+                characterBones,
+                characterBonesByPath);
+            if (remapped[i] == null)
                 throw new InvalidDataException("Weapon skin bone was not found on the character: " + sourceBone.name);
         }
         return remapped;
     }
 
-    private static void AddAnimator(GameObject root, string controllerPath, AnimationClip animationClip)
+    private static Transform FindMatchingBone(
+        Transform sourceBone,
+        Transform sourceRoot,
+        Dictionary<string, Transform> characterBones,
+        Dictionary<string, Transform> characterBonesByPath)
+    {
+        if (sourceBone == null)
+            return null;
+
+        var sourcePath = GetRelativeTransformPath(sourceBone, sourceRoot);
+        if (characterBonesByPath.TryGetValue(sourcePath, out var pathMatch))
+            return pathMatch;
+
+        return characterBones.TryGetValue(sourceBone.name, out var nameMatch) ? nameMatch : null;
+    }
+
+    private static void AddAnimator(
+        GameObject root,
+        GameObject sourceAsset,
+        string controllerPath,
+        IReadOnlyList<AnimationClip> animationClips,
+        string avatarPath)
     {
         DeleteAssetIfExists(controllerPath);
         var controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
         var stateMachine = controller.layers[0].stateMachine;
-        var state = stateMachine.AddState(animationClip.name);
-        state.motion = animationClip;
-        stateMachine.defaultState = state;
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < animationClips.Count; i++)
+        {
+            var clip = animationClips[i];
+            var stateName = clip.name;
+            if (!usedNames.Add(stateName))
+                stateName = stateName + "_" + i;
+
+            var state = stateMachine.AddState(stateName);
+            state.motion = clip;
+            if (i == 0)
+                stateMachine.defaultState = state;
+        }
 
         var animator = root.GetComponent<Animator>();
         if (animator == null)
             animator = root.AddComponent<Animator>();
+        var sourceAnimator = sourceAsset.GetComponentsInChildren<Animator>(true).FirstOrDefault();
+        var avatar = sourceAnimator != null ? sourceAnimator.avatar : null;
+        if (avatar == null)
+        {
+            var sourcePath = AssetDatabase.GetAssetPath(sourceAsset);
+            avatar = AssetDatabase.LoadAllAssetsAtPath(sourcePath).OfType<Avatar>().FirstOrDefault();
+        }
+        if (avatar == null)
+        {
+            avatar = BuildGenericAvatar(root, avatarPath);
+        }
+        if (avatar != null)
+            animator.avatar = avatar;
         animator.runtimeAnimatorController = controller;
         animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+    }
+
+    private static Avatar BuildGenericAvatar(GameObject root, string avatarPath)
+    {
+        var rootMotion = root.GetComponentsInChildren<Transform>(true)
+            .FirstOrDefault(transform => string.Equals(transform.name, "Root_M", StringComparison.Ordinal));
+        var avatar = AvatarBuilder.BuildGenericAvatar(root, rootMotion != null ? rootMotion.name : string.Empty);
+        if (avatar == null || !avatar.isValid)
+        {
+            if (avatar != null)
+                Object.DestroyImmediate(avatar);
+            Debug.LogWarning("SR could not build a valid Generic Avatar for " + root.name, root);
+            return null;
+        }
+
+        DeleteAssetIfExists(avatarPath);
+        avatar.name = Path.GetFileNameWithoutExtension(avatarPath);
+        AssetDatabase.CreateAsset(avatar, avatarPath);
+        AssetDatabase.SaveAssets();
+        return AssetDatabase.LoadAssetAtPath<Avatar>(avatarPath);
+    }
+
+    private static void ValidateAnimationBindings(GameObject root, IReadOnlyList<AnimationClip> animationClips)
+    {
+        var transformPaths = new HashSet<string>(
+            root.GetComponentsInChildren<Transform>(true)
+                .Select(transform => GetRelativeTransformPath(transform, root.transform)),
+            StringComparer.Ordinal);
+
+        foreach (var clip in animationClips)
+        {
+            var bindings = AnimationUtility.GetCurveBindings(clip)
+                .Where(binding => binding.type == typeof(Transform))
+                .Select(binding => binding.path)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var missing = bindings.Where(path => !transformPaths.Contains(path)).ToArray();
+            if (missing.Length == 0)
+                continue;
+            Debug.LogWarning(
+                string.Format(
+                    "SR animation binding mismatch: {0}, missing {1}/{2} transform paths. First missing: {3}",
+                    clip.name, missing.Length, bindings.Length, string.Join(", ", missing.Take(8))),
+                root);
+        }
+    }
+
+    private static AnimationClip[] FindAnimationClips(string folderPath, AnimationClip fallback)
+    {
+        if (string.IsNullOrEmpty(folderPath) || !AssetDatabase.IsValidFolder(folderPath))
+            return new[] { fallback };
+
+        var clips = AssetDatabase.FindAssets("t:AnimationClip", new[] { folderPath })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Where(path => path.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(path => AssetDatabase.LoadAssetAtPath<AnimationClip>(path))
+            .Where(clip => clip != null)
+            .OrderBy(clip => clip.name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        clips.Remove(fallback);
+        clips.Insert(0, fallback);
+        return clips.ToArray();
     }
 
     private static void BuildPreviewScene(GameObject prefab, string scenePath, string previewName)
@@ -332,6 +565,15 @@ public static class SrCharacterPreviewBuilder
             names.Add(current.name);
         names.Reverse();
         return names.Count == 0 ? root.name : root.name + "/" + string.Join("/", names);
+    }
+
+    private static string GetRelativeTransformPath(Transform transform, Transform root)
+    {
+        var names = new List<string>();
+        for (var current = transform; current != null && current != root; current = current.parent)
+            names.Add(current.name);
+        names.Reverse();
+        return string.Join("/", names);
     }
 
     private sealed class SrCharacterPreviewBuilderWindow : EditorWindow
