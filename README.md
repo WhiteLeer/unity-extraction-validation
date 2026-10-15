@@ -20,7 +20,7 @@ not a promise that every importer supports that version. Never relabel old
 TypeTrees, extraction runs or captures as new-version data.
 
 Current static Shader reconstruction helper sources live in
-[`my-hook-tool/unity`](https://github.com/WhiteLeer/my-hook-tool/tree/HSR-4.6-MUMU/unity).
+[`my-hook-tool/unity`](https://github.com/WhiteLeer/my-hook-tool/tree/HSR/unity).
 The local `Assets/RenderDocShaderSamples` experiments are outside this Git
 subtree; generated game assets are not included here.
 
