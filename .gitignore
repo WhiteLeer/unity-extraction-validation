@@ -49,3 +49,20 @@ HoyoToon/Shaders/Honkai Star Rail/TEST.mat.meta
 # OS files
 .DS_Store
 Thumbs.db
+
+# Versioned extraction runs and generated game assets remain local.
+/HSR-*/Clean/
+/HSR-*/Clean.meta
+/HSR-*/Runs/
+/HSR-*/Runs.meta
+/ZZZ-*/Clean/
+/ZZZ-*/Clean.meta
+/ZZZ-*/Runs/
+/ZZZ-*/Runs.meta
+/SR/effects/
+/SR/effects.meta
+*.srprefab
+*.zzzprefab
+*.rdc
+*.srrdc
+*.zzzrdc

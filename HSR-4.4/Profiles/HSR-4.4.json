@@ -1,0 +1,108 @@
+{
+  "id": "HSR-4.4",
+  "game": "SR",
+  "version": "4.4",
+  "unityAssetRoot": "Assets/unity-extraction-validation/HSR-4.4",
+  "canonicalRoot": "Assets/unity-extraction-validation/SR",
+  "sourceLayout": "StarRail_Data/StreamingAssets/Asb/Windows",
+  "toolchain": {
+    "repository": "https://github.com/WhiteLeer/my-assets-studio.git",
+    "branch": "SR-4.4",
+    "targetFramework": "net8.0-windows",
+    "runtime": ".NET 8"
+  },
+  "mapFormats": {
+    "characterAssetMap": "MessagePack",
+    "broadAssetMap": "JSON",
+    "cabMap": "Binary"
+  },
+  "externalInputs": {
+    "characterGameObjectMap": "sr44_character_gameobjects.map",
+    "characterMaterialMap": "sr44_character_materials.map",
+    "versionWideCharacterRootMap": "hsr44_character_roots.map",
+    "versionWideMaterialTextureRootMap": "hsr44_material_texture_roots.map",
+    "animationMap": "sr44_animation_global.map",
+    "cabMap": "sr44_cab_map.bin",
+    "typeTree": "version-matched structs.dump"
+  },
+  "automation": {
+    "script": "Tools/HSR44/Extract-HsrCharacter.ps1",
+    "indexBuild": "one-time per HSR 4.4 data set",
+    "stages": ["Models", "Animations", "Textures"],
+    "mergeWeaponModelSwitch": "-MergeWeaponModel",
+    "cleanStageSwitch": "-CleanStageOutput",
+    "reusedIndexes": [
+      "hsr44_character_roots.map",
+      "hsr44_material_texture_roots.map"
+    ],
+    "assetPrefix": "optional; inferred as Avatar_<character>_<variant> when names match"
+  },
+  "assetRoots": {
+    "characters": "characters",
+    "effects": "effects",
+    "runs": "Runs"
+  },
+  "rawOutput": {
+    "rootToken": "HSR_4_4_RAW_ROOT",
+    "layout": "${HSR_4_4_RAW_ROOT}/Runs/<run-id>/raw",
+    "unityProjectImport": false,
+    "animeStudioOutputArgument": "second positional CLI argument"
+  },
+  "assetNameRules": {
+    "characterModel": "^Avatar_(?<character>[A-Za-z0-9]+)_(?<variant>[0-9]+)_Model_Chara$",
+    "characterOtherModel": "^Avatar_(?<character>[A-Za-z0-9]+)_(?<variant>[0-9]+)_Model_Others$",
+    "characterAnimation": "^Avatar_(?<character>[A-Za-z0-9]+)_(?<variant>[0-9]+)_",
+    "effect": "^Eff_Avatar_(?<character>[A-Za-z0-9]+)_(?<variant>[0-9]+)_"
+  },
+  "requiredCharacterOutputs": [
+    "Model",
+    "Animations",
+    "Material",
+    "Texture",
+    "Preview"
+  ],
+  "requiredEffectOutputs": [
+    "Prefab",
+    "Materials",
+    "Meshes",
+    "Textures",
+    "Shaders"
+  ],
+  "externalTypeTree": {
+    "forceClassesWhenProvided": [120, 198, 199]
+  },
+  "excludedAssetKinds": [
+    "AudioClip",
+    "VideoClip",
+    "MovieTexture"
+  ],
+  "extractionStage": {
+    "owns": [
+      "request resolution",
+      "preflight",
+      "raw extraction",
+      "logs",
+      "counts",
+      "missing-source diagnostics",
+      "provenance"
+    ],
+    "doesNotOwn": [
+      "cleanup",
+      "normalization",
+      "Unity import",
+      "visual validation",
+      "canonical promotion"
+    ]
+  },
+  "requiredDiagnostics": [
+    "index used and its format",
+    "rendered name/type filters",
+    "matched object count",
+    "selected source block count",
+    "missing source blocks with active root",
+    "dependency closure count",
+    "exported and skipped counts",
+    "TypeTree warnings and decode errors",
+    "plain-language diagnosis"
+  ]
+}
